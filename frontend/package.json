@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "main": "expo-router/entry",
-  "version": "1.0.4",
+  "version": "1.0.0",
   "scripts": {
     "start": "expo start --tunnel --port 3000",
     "reset-project": "node ./scripts/reset-project.js",

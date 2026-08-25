@@ -2,7 +2,7 @@
   "expo": {
     "name": "TaskMint",
     "slug": "taskmint",
-    "version": "1.0.4",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "taskmint",
@@ -23,7 +23,7 @@
     },
     "android": {
       "package": "com.labs93world.taskmint",
-      "versionCode": 4,
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#4F46E5"
