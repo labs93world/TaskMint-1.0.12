@@ -87,6 +87,14 @@
           "userTrackingUsageDescription": "This identifier will be used to deliver personalised ads to you."
         }
       ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.1.0"
+          }
+        }
+      ],
       "expo-font",
       "expo-secure-store"
     ],
