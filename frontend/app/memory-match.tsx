@@ -9,6 +9,7 @@ import { useAuth } from "../src/context/AuthContext";
 import NativeAd from "../src/components/NativeAd";
 import RewardedAdModal from "../src/components/RewardedAdModal";
 import { useGameSession } from "../src/hooks/useGameSession";
+import { useGameAdConfig } from "../src/hooks/useGameAdConfig";
 import MaintenanceCard from "../src/components/MaintenanceCard";
 import { useMaintenance } from "../src/hooks/useMaintenance";
 
@@ -29,7 +30,14 @@ export default function MemoryMatch() {
   const maint = useMaintenance("/memory-match");
   const router = useRouter();
   const { refreshUser } = useAuth();
-  const session = useGameSession(5, 0, "tm:game:memory");
+  const adCfg = useGameAdConfig("memory");
+  const [memReward, setMemReward] = useState<number>(200);
+  useEffect(() => {
+    api<{ memory_completion?: number }>("/app-config", { auth: false })
+      .then((c) => setMemReward(Number(c?.memory_completion ?? 200) || 200))
+      .catch(() => {});
+  }, []);
+  const session = useGameSession(adCfg.chances_per_ad, adCfg.every_n, "tm:game:memory");
   const [showRewardedAd, setShowRewardedAd] = useState(false);
   const [cards, setCards] = useState<Card[]>([]);
   const [selected, setSelected] = useState<number[]>([]);
@@ -136,7 +144,7 @@ export default function MemoryMatch() {
         <View style={styles.statBox}><Text style={styles.statLabel}>Time</Text><Text style={styles.statValue}>{elapsed}s</Text></View>
         <View style={styles.statBox}>
           <Text style={styles.statLabel}>Chances</Text>
-          <Text style={styles.statValue} testID="memory-chances">{session.chancesLeft}/5</Text>
+          <Text style={styles.statValue} testID="memory-chances">{session.chancesLeft}/{adCfg.chances_per_ad}</Text>
         </View>
       </View>
 
@@ -161,7 +169,7 @@ export default function MemoryMatch() {
             : (gameOver ? "Play Again" : "Restart")}
         </Text>
       </TouchableOpacity>
-      <Text style={styles.hint}>Reward: 50–100 pts per completion</Text>
+      <Text style={styles.hint}>Reward: {memReward} pts per completion</Text>
 
       <RewardedAdModal
         visible={showRewardedAd}

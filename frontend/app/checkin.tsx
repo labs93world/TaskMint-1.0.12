@@ -9,6 +9,9 @@ import { ChevronLeft, Calendar, Flame, Gift } from "lucide-react-native";
 import { theme } from "../src/lib/theme";
 import { api } from "../src/lib/api";
 import { useAuth } from "../src/context/AuthContext";
+import InterstitialAdModal from "../src/components/InterstitialAdModal";
+import RewardedAdModal from "../src/components/RewardedAdModal";
+import { useGameAdConfig } from "../src/hooks/useGameAdConfig";
 import MaintenanceCard from "../src/components/MaintenanceCard";
 import { useMaintenance } from "../src/hooks/useMaintenance";
 
@@ -16,8 +19,16 @@ export default function CheckinScreen() {
   const maint = useMaintenance("/checkin");
   const router = useRouter();
   const { user, refreshUser } = useAuth();
+  const adCfg = useGameAdConfig("checkin");
+  const [chk, setChk] = useState({ base: 20, cap: 100 });
+  useEffect(() => {
+    api<{ checkin_base?: number; checkin_cap?: number }>("/app-config", { auth: false })
+      .then((c) => setChk({ base: Number(c?.checkin_base ?? 20) || 20, cap: Number(c?.checkin_cap ?? 100) || 100 }))
+      .catch(() => {});
+  }, []);
   const [busy, setBusy] = useState(false);
   const [reward, setReward] = useState<number | null>(null);
+  const [showInterstitial, setShowInterstitial] = useState(false);
   const scale = useRef(new Animated.Value(1)).current;
 
   const today = new Date().toISOString().slice(0, 10);
@@ -34,6 +45,8 @@ export default function CheckinScreen() {
       const res = await api<{ reward: number; streak: number }>("/tasks/checkin", { method: "POST" });
       setReward(res.reward);
       await refreshUser();
+      // Item 6a — must watch an interstitial ad to claim the reward.
+      setShowInterstitial(true);
     } catch (e: any) {
       toast.error("Cannot check in", { description: e?.message || "Try again later" });
     } finally {
@@ -72,7 +85,7 @@ export default function CheckinScreen() {
           })}
         </View>
 
-        {reward !== null ? (
+        {reward !== null && !showInterstitial ? (
           <View style={styles.rewardCard} testID="checkin-reward">
             <Gift size={48} color={theme.colors.success} />
             <Text style={styles.rewardTitle}>+{reward} points</Text>
@@ -98,8 +111,20 @@ export default function CheckinScreen() {
           </Animated.View>
         )}
 
-        <Text style={styles.hint}>Reward grows with streak: 20 → 100 points</Text>
+        <Text style={styles.hint}>Reward grows with streak: {chk.base} → {chk.cap} points</Text>
       </View>
+
+      <InterstitialAdModal
+        visible={showInterstitial && adCfg.ad_type !== "rewarded"}
+        duration={3}
+        onDone={() => setShowInterstitial(false)}
+      />
+      <RewardedAdModal
+        visible={showInterstitial && adCfg.ad_type === "rewarded"}
+        duration={3}
+        onReward={() => setShowInterstitial(false)}
+        onClose={() => setShowInterstitial(false)}
+      />
 
     </SafeAreaView>
   );

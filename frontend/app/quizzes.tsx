@@ -28,6 +28,7 @@ export default function Quizzes() {
   const [loading, setLoading] = useState(true);
   const [showInterstitial, setShowInterstitial] = useState(false);
   const [adAcknowledged, setAdAcknowledged] = useState(true);
+  const [qRange, setQRange] = useState({ min: 30, max: 100 });
 
   const used = user?.daily_quizzes_used ?? 0;
   const left = Math.max(0, 5 - used);
@@ -37,6 +38,9 @@ export default function Quizzes() {
     try {
       const list = await api<Question[]>("/tasks/quizzes/random?limit=5");
       setQuestions(list);
+      api<{ quiz_min?: number; quiz_max?: number }>("/app-config", { auth: false })
+        .then((c) => setQRange({ min: Number(c?.quiz_min ?? 30) || 30, max: Number(c?.quiz_max ?? 100) || 100 }))
+        .catch(() => {});
       setPicks([]);
       setIdx(0);
       setDone(false);
@@ -132,7 +136,7 @@ export default function Quizzes() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
-        <Text style={styles.intro}>5 quizzes per day • 30-100 pts each • {left}/5 left</Text>
+        <Text style={styles.intro}>5 quizzes per day • {qRange.min}-{qRange.max} pts each • {left}/5 left</Text>
         <InterstitialAdModal
           visible={showInterstitial}
           onDone={() => { setShowInterstitial(false); setAdAcknowledged(true); }}

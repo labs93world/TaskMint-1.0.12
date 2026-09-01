@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 import {
-  View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -18,8 +18,6 @@ type Txn = {
   points: number; note: string; created_at: string;
 };
 
-type Filter = "all" | "games_task" | "campaign";
-
 const sourceLabel: Record<string, string> = {
   checkin: "Daily Check-in", spin: "Spin Wheel", scratch: "Scratch Card",
   campaign: "Campaign", quiz: "Quiz", survey: "Survey", watch: "Watch & Earn",
@@ -27,14 +25,8 @@ const sourceLabel: Record<string, string> = {
   coinmine: "Coin Mine", plinko: "Plinko",
   treasure: "Treasure Hunt", higher_lower: "Higher or Lower",
   tictactoe: "Tic-Tac-Toe", memory: "Memory Match", math: "Math Sprint",
-  visit: "Visit & Earn",
+  visit: "Visit & Earn", referral: "Referral Bonus",
 };
-
-const FILTERS: { key: Filter; label: string; testID: string }[] = [
-  { key: "all",         label: "All",            testID: "wallet-filter-all" },
-  { key: "games_task",  label: "Games & Task",   testID: "wallet-filter-games" },
-  { key: "campaign",    label: "Offerwall",      testID: "wallet-filter-offerwall" },
-];
 
 export default function WalletScreen() {
   const maint = useMaintenance("/wallet");
@@ -43,7 +35,6 @@ export default function WalletScreen() {
   const [txns, setTxns] = useState<Txn[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<Filter>("all");
 
   const load = useCallback(async () => {
     try {
@@ -63,12 +54,6 @@ export default function WalletScreen() {
     await Promise.all([refreshUser(), load()]);
     setRefreshing(false);
   };
-
-  const filtered = txns.filter((t) => {
-    if (filter === "all") return true;
-    const cat = t.category || "games_task";
-    return cat === filter;
-  });
 
   if (maint.enabled) return <MaintenanceCard title="Wallet" note={maint.note} />;
   return (
@@ -90,43 +75,18 @@ export default function WalletScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Transaction History</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterRow}
-          >
-            {FILTERS.map((f) => {
-              const active = filter === f.key;
-              return (
-                <TouchableOpacity
-                  key={f.key}
-                  onPress={() => setFilter(f.key)}
-                  style={[styles.filterChip, active && styles.filterChipActive]}
-                  testID={f.testID}
-                >
-                  <Text style={[styles.filterText, active && styles.filterTextActive]}>
-                    {f.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
           {loading ? (
             <View style={{ paddingVertical: 40, alignItems: "center" }}>
               <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
-          ) : filtered.length === 0 ? (
+          ) : txns.length === 0 ? (
             <View style={styles.emptyCard}>
               <Receipt size={36} color={theme.colors.muted} />
               <Text style={styles.empty}>No transactions yet.</Text>
-              <Text style={styles.emptySub}>
-                {filter === "all"
-                  ? "Start earning to see your history here."
-                  : "Nothing in this category yet."}
-              </Text>
+              <Text style={styles.emptySub}>Start earning to see your history here.</Text>
             </View>
           ) : (
-            filtered.map((t) => (
+            txns.map((t) => (
               <View key={t.id} style={styles.txn} testID={`txn-${t.id}`}>
                 <View
                   style={[
@@ -141,7 +101,7 @@ export default function WalletScreen() {
                   )}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.txnTitle}>
+                  <Text style={styles.txnTitle} numberOfLines={1}>
                     {sourceLabel[t.source] || t.source}
                   </Text>
                   <Text style={styles.txnNote} numberOfLines={1}>
@@ -172,24 +132,12 @@ const styles = StyleSheet.create({
   scroll: { paddingBottom: 16 },
   title: {
     fontSize: 28, fontWeight: "800", color: theme.colors.text,
-    paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md, paddingBottom: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md, paddingBottom: theme.spacing.xs,
   },
-  section: { paddingHorizontal: theme.spacing.lg, marginTop: theme.spacing.md },
+  section: { paddingHorizontal: theme.spacing.lg, marginTop: theme.spacing.sm },
   sectionTitle: {
-    fontSize: 18, fontWeight: "800", color: theme.colors.text, marginBottom: theme.spacing.md,
+    fontSize: 18, fontWeight: "800", color: theme.colors.text, marginBottom: theme.spacing.sm,
   },
-  filterRow: { flexDirection: "row", gap: 8, paddingBottom: 12 },
-  filterChip: {
-    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1, borderColor: theme.colors.border,
-  },
-  filterChipActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  filterText: { fontSize: 13, fontWeight: "700", color: theme.colors.text },
-  filterTextActive: { color: "#fff" },
   txn: {
     flexDirection: "row", alignItems: "center", gap: 12,
     backgroundColor: theme.colors.surface, padding: theme.spacing.md,

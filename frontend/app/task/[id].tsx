@@ -138,7 +138,7 @@ export default function TaskDetail() {
           <View style={{ width: 26 }} />
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: 100, gap: 16 }}>
+        <ScrollView contentContainerStyle={{ padding: theme.spacing.md, paddingBottom: 80, gap: 12 }}>
           {/* Header card */}
           <View style={styles.card}>
             <Image source={{ uri: c.logo_url }} style={styles.logo} />
@@ -292,12 +292,12 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: theme.spacing.md },
   title: { fontSize: 18, fontWeight: "800", color: theme.colors.text },
   card: {
-    backgroundColor: theme.colors.surface, borderRadius: theme.radii.xl,
-    padding: theme.spacing.lg, borderWidth: 1, borderColor: theme.colors.border, gap: 6,
+    backgroundColor: theme.colors.surface, borderRadius: theme.radii.lg,
+    padding: theme.spacing.md, borderWidth: 1, borderColor: theme.colors.border, gap: 4,
   },
-  logo: { width: 64, height: 64, borderRadius: 16, backgroundColor: "#eee" },
-  name: { fontSize: 22, fontWeight: "800", color: theme.colors.text, marginTop: 8 },
-  note: { fontSize: 14, color: theme.colors.muted, marginTop: 4 },
+  logo: { width: 56, height: 56, borderRadius: 14, backgroundColor: "#eee" },
+  name: { fontSize: 20, fontWeight: "800", color: theme.colors.text, marginTop: 6 },
+  note: { fontSize: 13, color: theme.colors.muted, marginTop: 2 },
   tags: { flexDirection: "row", gap: 6, marginTop: 8 },
   tag: { backgroundColor: theme.colors.primarySoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   tagText: { color: theme.colors.primary, fontSize: 11, fontWeight: "800" },

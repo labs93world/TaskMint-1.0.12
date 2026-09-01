@@ -412,3 +412,37 @@ agent_communication:
   2. referrer looked up by referral_code but referred_by stores a user_id → referrer never found. Fixed to look up by user_id.
 - Verified: syntax OK, backend restarts clean, /api/version returns 1.0.1.
 - Build config verified deployment-ready: AdMob Kotlin 2.1.0, react-native-google-mobile-ads 16.3.4, yarn.lock (concat-map/brace-expansion) intact, requirements.txt clean, app.json name/package/version=1.0.1.
+
+## Phase 1 (fork agent) — Single wallet + layout + exchange ratio + surveys
+Backend (server.py):
+- Single-wallet /withdraw: balance/min checks now use user.points + meta.min_withdrawal (added field). Deducts points (+games_task_points kept in sync). Removed per-source picker logic. Reject-refund → points.
+- /campaigns and /campaign/{id} now compute reward_inr live from exchange_points_per_inr (App Config) — item 1a.
+- /withdraw-settings returns single min_withdrawal.
+Frontend:
+- withdraw.tsx rewritten: no wallet picker, single BALANCE, single min. (items 4a, 3d)
+- wallet.tsx: removed category filters (3c), tightened gaps (3a,3b vertical).
+- profile.tsx: removed stats row + notifications section (2a).
+- home.tsx: tightened section gaps.
+- task/[id].tsx: vertical optimize (smaller card padding/logo/gaps) (5).
+- surveys.tsx: 1 survey per task (limit=1) (6i).
+Note: quizzes already return 5 distinct random Qs from 25-pool (6j OK).
+Pending Phase 2: per-game ad gating (6a-h), admin ad config (1b), AutoSizeText (7), splash both-appear+fast (8).
+
+## Phase 2 (fork agent) — Per-game ad gating + admin ad config
+Backend: added AppMetaSettings.game_ad_config (per-game ad_type/chances_per_ad/every_n) with spec defaults; exposed via /app-config; editable via existing PUT /admin/app-config.
+Frontend:
+- New hook src/hooks/useGameAdConfig.ts (fetches /app-config, spec defaults).
+- Wired HL(6b, every 2), TTT(6d, every 2), Math(6e, every 2), Memory(6c, rewarded chances=1), Tap(6g, every 1), Trivia(6h, every 1) via useGameSession(cfg.chances_per_ad, cfg.every_n).
+- Checkin(6a): interstitial shown on claim before reward card.
+- Daily Challenge(6f): swapped interstitial->rewarded on box open.
+- Survey(6i): already interstitial on submit.
+- New admin screen /admin/game-ads + tile in admin index (item 1b).
+Pending Phase 3: 6k full live reward labels across all games; item 7 AutoSizeText everywhere; item 8 splash (both already appear, no artificial delay).
+
+## Phase 2 follow-ups (fork agent)
+- Fixed memory chances denominator to use adCfg.chances_per_ad (was hardcoded /5).
+- checkin & daily-challenge now honor admin-selected ad_type (interstitial vs rewarded) — full 1b consistency.
+- Item 6k live reward labels: memory (memory_completion), tic-tac-toe (ttt_win scaled), trivia (per_correct/streak_bonus), quizzes (quiz_min/max), checkin (base/cap). HL already dynamic.
+- Item 7: added reusable src/components/AutoText.tsx (adjustsFontSizeToFit wrapper); applied to BalanceCard. Broader rollout available.
+- Item 8: native splash + JS loading both appear in sequence; splash hides right after auth token check (no artificial delay) = fast open.
+Verified: lint clean on all changed files; memory-match smoke shows rewarded gating + dynamic chances 0/1 + dynamic reward label.

@@ -40,7 +40,7 @@ export default function Surveys() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await api<Survey[]>("/tasks/surveys/random?limit=5");
+      const list = await api<Survey[]>("/tasks/surveys/random?limit=1");
       setSurveys(list);
       setSurveyIdx(0);
       setStage("intro");
@@ -161,7 +161,7 @@ export default function Surveys() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
-        <Text style={styles.intro}>5 surveys per task • 5 tasks per day • {left}/5 left</Text>
+        <Text style={styles.intro}>1 survey per task • 5 tasks per day • {left}/5 left</Text>
 
         <InterstitialAdModal
           visible={showInterstitial}

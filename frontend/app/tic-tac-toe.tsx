@@ -10,6 +10,7 @@ import NativeAd from "../src/components/NativeAd";
 import RewardedAdModal from "../src/components/RewardedAdModal";
 import InterstitialAdModal from "../src/components/InterstitialAdModal";
 import { useGameSession } from "../src/hooks/useGameSession";
+import { useGameAdConfig } from "../src/hooks/useGameAdConfig";
 import MaintenanceCard from "../src/components/MaintenanceCard";
 import { useMaintenance } from "../src/hooks/useMaintenance";
 
@@ -65,7 +66,8 @@ export default function TicTacToe() {
   const maint = useMaintenance("/tic-tac-toe");
   const router = useRouter();
   const { refreshUser } = useAuth();
-  const session = useGameSession(10, 5, "tm:game:ttt");
+  const adCfg = useGameAdConfig("tictactoe");
+  const session = useGameSession(adCfg.chances_per_ad, adCfg.every_n, "tm:game:ttt");
   const [showRewardedAd, setShowRewardedAd] = useState(false);
   const [board, setBoard] = useState<Cell[]>(Array(9).fill(null));
   const [turn, setTurn] = useState<Cell>("X");
@@ -73,6 +75,13 @@ export default function TicTacToe() {
   const [over, setOver] = useState(false);
   const [winnerInfo, setWinnerInfo] = useState<{ winner: Cell; line: number[] | null }>({ winner: null, line: null });
   const [winPopup, setWinPopup] = useState<{ visible: boolean; points: number; title: string } | null>(null);
+
+  const [tttWin, setTttWin] = useState<number>(100);
+  useEffect(() => {
+    api<{ ttt_win?: number }>("/app-config", { auth: false })
+      .then((c) => setTttWin(Number(c?.ttt_win ?? 100) || 100))
+      .catch(() => {});
+  }, []);
 
   // Show interstitial when triggered.
   useEffect(() => {
@@ -164,7 +173,7 @@ export default function TicTacToe() {
           Chances left: {session.chancesLeft} / 10
         </Text>
       </View>
-      <Text style={styles.subtle}>Reward: easy 30 • medium 60 • hard 100 (per win)</Text>
+      <Text style={styles.subtle}>Reward: easy {Math.round(tttWin * 0.3)} • medium {Math.round(tttWin * 0.6)} • hard {tttWin} (per win)</Text>
 
       <View style={styles.board}>
         {board.map((c, i) => {

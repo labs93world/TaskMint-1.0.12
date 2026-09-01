@@ -10,6 +10,7 @@ import NativeAd from "../src/components/NativeAd";
 import RewardedAdModal from "../src/components/RewardedAdModal";
 import InterstitialAdModal from "../src/components/InterstitialAdModal";
 import { useGameSession } from "../src/hooks/useGameSession";
+import { useGameAdConfig } from "../src/hooks/useGameAdConfig";
 import MaintenanceCard from "../src/components/MaintenanceCard";
 import { useMaintenance } from "../src/hooks/useMaintenance";
 
@@ -41,7 +42,8 @@ export default function MathSprint() {
   const maint = useMaintenance("/math-sprint");
   const router = useRouter();
   const { refreshUser } = useAuth();
-  const session = useGameSession(10, 5, "tm:game:math");
+  const mathAdCfg = useGameAdConfig("math");
+  const session = useGameSession(mathAdCfg.chances_per_ad, mathAdCfg.every_n, "tm:game:math");
   const [showRewardedAd, setShowRewardedAd] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [problem, setProblem] = useState<Problem | null>(null);

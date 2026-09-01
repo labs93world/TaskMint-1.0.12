@@ -255,9 +255,10 @@ class AppMetaSettings(BaseModel):
     """
     # ----- Wallet -----
     exchange_points_per_inr: int = 100         # 100 pts = ₹1 by default
-    min_withdrawal_campaign: int = 10000        # points (₹100)
-    min_withdrawal_games_task: int = 10000      # points (₹100)
-    daily_withdrawal_limit: int = 2             # combined withdrawals per day
+    min_withdrawal_campaign: int = 10000        # points (₹100) [legacy]
+    min_withdrawal_games_task: int = 10000      # points (₹100) [legacy]
+    min_withdrawal: int = 10000                 # points — single-wallet minimum
+    daily_withdrawal_limit: int = 2             # withdrawals per day
 
     # ----- Task / game reward ranges (min..max points) -----
     spin_min: int = 30;       spin_max: int = 100
@@ -301,6 +302,24 @@ class AppMetaSettings(BaseModel):
     # Map of route path → {enabled: bool, note: str}.
     # Example: {"/spin": {"enabled": true, "note": "Spin is undergoing improvements"}}
     maintenance: Dict[str, Dict[str, Any]] = {}
+
+    # ----- Per-game ad configuration (admin-editable, item 1b + 6) -----
+    # For each game key: ad_type ("interstitial" | "rewarded"), and `every_n`.
+    # For chance-based games (hl/ttt/math/memory/tap/trivia): `chances_per_ad`
+    # is how many plays one rewarded unlock grants, `every_n` is how often an
+    # interstitial appears (in plays). For one-shot claims (checkin/daily/survey)
+    # ad_type decides which ad shows on claim.
+    game_ad_config: Dict[str, Dict[str, Any]] = {
+        "checkin":         {"ad_type": "interstitial", "chances_per_ad": 0,  "every_n": 1},
+        "higher_lower":    {"ad_type": "interstitial", "chances_per_ad": 10, "every_n": 2},
+        "memory":          {"ad_type": "rewarded",     "chances_per_ad": 1,  "every_n": 0},
+        "tictactoe":       {"ad_type": "interstitial", "chances_per_ad": 10, "every_n": 2},
+        "math":            {"ad_type": "interstitial", "chances_per_ad": 10, "every_n": 2},
+        "daily_challenge": {"ad_type": "rewarded",     "chances_per_ad": 0,  "every_n": 1},
+        "tap":             {"ad_type": "interstitial", "chances_per_ad": 5,  "every_n": 1},
+        "trivia":          {"ad_type": "interstitial", "chances_per_ad": 5,  "every_n": 1},
+        "survey":          {"ad_type": "interstitial", "chances_per_ad": 0,  "every_n": 1},
+    }
 
 class WithdrawSettings(BaseModel):
     amounts: List[int] = [100, 10000, 30000, 50000]  # in points (₹1, ₹100, ₹300, ₹500)
@@ -834,6 +853,12 @@ async def get_campaigns():
         {"active": True, "$or": [{"hidden": {"$ne": True}}, {"hidden": {"$exists": False}}]},
         {"_id": 0},
     ).sort([("pinned", -1), ("created_at", -1)]).to_list(100)
+    # Recompute reward_inr live from the admin-controlled exchange ratio so the
+    # offerwall/campaign INR always reflects the current App Config value.
+    meta = await get_app_meta()
+    ratio = int(meta.get("exchange_points_per_inr", 100) or 100) or 100
+    for it in items:
+        it["reward_inr"] = round(int(it.get("reward_points", 0) or 0) / float(ratio), 2)
     return items
 
 @api_router.get("/links")
@@ -907,6 +932,7 @@ async def get_withdraw_settings():
     base["exchange_points_per_inr"] = int(meta.get("exchange_points_per_inr", 100) or 100)
     base["min_withdrawal_campaign"] = int(meta.get("min_withdrawal_campaign", 10000) or 10000)
     base["min_withdrawal_games_task"] = int(meta.get("min_withdrawal_games_task", 10000) or 10000)
+    base["min_withdrawal"] = int(meta.get("min_withdrawal", 10000) or 10000)
     base["daily_withdrawal_limit"] = int(meta.get("daily_withdrawal_limit", 2) or 2)
     return base
 
@@ -1705,6 +1731,10 @@ async def get_campaign_detail(campaign_id: str, user: dict = Depends(get_current
         {"user_id": user["user_id"], "campaign_id": campaign_id}, {"_id": 0}
     )
     cmp["completion"] = completion
+    # Live INR from the admin exchange ratio (App Config).
+    meta = await get_app_meta()
+    ratio = int(meta.get("exchange_points_per_inr", 100) or 100) or 100
+    cmp["reward_inr"] = round(int(cmp.get("reward_points", 0) or 0) / float(ratio), 2)
     return cmp
 
 @api_router.post("/tasks/campaign/{campaign_id}")
@@ -1784,32 +1814,28 @@ async def submit_withdraw(payload: WithdrawCreate, user: dict = Depends(get_curr
     if payload.method == "bank" and not (payload.bank_account and payload.bank_ifsc and payload.bank_holder):
         raise HTTPException(status_code=400, detail="Bank details required")
 
-    # --- Per-wallet balance check ---
-    source = payload.source if payload.source in ("campaign", "games_task") else "games_task"
-    bucket_field = "campaign_points" if source == "campaign" else "games_task_points"
-    bucket_balance = int(user.get(bucket_field, 0) or 0)
-    if payload.points > bucket_balance:
+    # --- Single-wallet balance check ---
+    balance = int(user.get("points", 0) or 0)
+    if payload.points > balance:
         raise HTTPException(
             status_code=400,
-            detail=f"Insufficient {source.replace('_', ' & ')} balance ({bucket_balance} pts available)",
+            detail=f"Insufficient balance ({balance} pts available)",
         )
 
-    # --- Admin-configurable mins (per source) + exchange ratio + daily cap ---
+    # --- Admin-configurable min + exchange ratio + daily cap ---
     meta = await get_app_meta()
-    min_field = "min_withdrawal_campaign" if source == "campaign" else "min_withdrawal_games_task"
-    min_points = int(meta.get(min_field, 10000) or 10000)
+    min_points = int(meta.get("min_withdrawal", 10000) or 10000)
     ratio = int(meta.get("exchange_points_per_inr", 100) or 100)
     if ratio <= 0:
         ratio = 100
     daily_cap = int(meta.get("daily_withdrawal_limit", 2) or 2)
     if payload.points < min_points:
-        readable = "Campaign" if source == "campaign" else "Games & Task"
         raise HTTPException(
             status_code=400,
-            detail=f"Minimum withdrawal from {readable} wallet is {min_points} points (₹{round(min_points/ratio, 2)})",
+            detail=f"Minimum withdrawal is {min_points} points (₹{round(min_points/ratio, 2)})",
         )
 
-    # --- Combined daily cap ---
+    # --- Daily cap ---
     today = today_str()
     wd_today_date = user.get("withdrawals_today_date")
     wd_today = int(user.get("withdrawals_today", 0) or 0) if wd_today_date == today else 0
@@ -1819,18 +1845,19 @@ async def submit_withdraw(payload: WithdrawCreate, user: dict = Depends(get_curr
     inr = round(payload.points / float(ratio), 2)
     wd = WithdrawRequest(
         user_id=user["user_id"], user_name=user["name"], user_email=user["email"],
-        method=payload.method, source=source, points=payload.points, inr_amount=inr,
+        method=payload.method, source="games_task", points=payload.points, inr_amount=inr,
         upi_id=payload.upi_id, bank_account=payload.bank_account,
         bank_ifsc=payload.bank_ifsc, bank_holder=payload.bank_holder,
     )
     await db.withdrawals.insert_one(wd.dict())
-    # deduct points from the correct bucket and the legacy total; bump per-day counter.
+    # Deduct from the single wallet (points) + keep both legacy buckets in sync
+    # so nothing reads a stale bucket value elsewhere. bump per-day counter.
     await db.users.update_one(
         {"user_id": user["user_id"]},
         {
             "$inc": {
                 "points": -payload.points,
-                bucket_field: -payload.points,
+                "games_task_points": -payload.points,
                 "total_withdrawn": payload.points,
             },
             "$set": {
@@ -1842,8 +1869,8 @@ async def submit_withdraw(payload: WithdrawCreate, user: dict = Depends(get_curr
     )
     txn = Transaction(
         user_id=user["user_id"], type="withdraw", source="withdraw",
-        category=source, points=-payload.points,
-        note=f"Withdraw {inr} INR via {payload.method} ({source.replace('_', ' & ')})",
+        category="games_task", points=-payload.points,
+        note=f"Withdraw {inr} INR via {payload.method}",
     )
     await db.transactions.insert_one(txn.dict())
     return wd.dict()
@@ -1949,17 +1976,14 @@ async def admin_update_withdraw(withdraw_id: str, payload: WithdrawUpdate, _: di
                         )
 
     if payload.status == "rejected" and wd["status"] != "rejected":
-        # refund points to the SAME bucket they were drawn from (legacy
-        # rows without `source` default to games_task).
-        src = (wd.get("source") or "games_task").lower()
-        bucket_field = "campaign_points" if src == "campaign" else "games_task_points"
+        # Single wallet: refund to points (+ keep legacy bucket in sync).
         await db.users.update_one(
             {"user_id": wd["user_id"]},
-            {"$inc": {"points": wd["points"], bucket_field: wd["points"]}},
+            {"$inc": {"points": wd["points"], "games_task_points": wd["points"]}},
         )
         txn = Transaction(
             user_id=wd["user_id"], type="earn", source="withdraw",
-            category=src, points=wd["points"],
+            category="games_task", points=wd["points"],
             note=f"Withdrawal {withdraw_id} refunded",
         )
         await db.transactions.insert_one(txn.dict())

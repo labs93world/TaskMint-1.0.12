@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Linking, Switch, Modal, TextInput, KeyboardAvoidingView, Platform,
+  View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Linking, Modal, TextInput, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { toast } from "sonner-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
 import {
-  Bell, ChevronRight, Coins, ListTodo, Flame, Shield, X, Phone,
+  ChevronRight, Shield, X, Phone,
 } from "lucide-react-native";
 import { useAuth } from "../../src/context/AuthContext";
 import { theme } from "../../src/lib/theme";
@@ -28,7 +28,6 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [links, setLinks] = useState<Links | null>(null);
   const [buttons, setButtons] = useState<ProfileButton[]>([]);
-  const [reminder, setReminder] = useState(true);
   const [adminModal, setAdminModal] = useState(false);
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
@@ -118,23 +117,6 @@ export default function ProfileScreen() {
             </View>
           )}
         </TouchableOpacity>
-
-        {/* Stats */}
-        <View style={styles.statsRow}>
-          <Stat icon={<Coins size={18} color={theme.colors.primary} />} label="Total earned" value={String(user?.total_earned ?? 0)} />
-          <Stat icon={<ListTodo size={18} color={theme.colors.primary} />} label="Tasks done" value={String(user?.total_tasks ?? 0)} />
-          <Stat icon={<Flame size={18} color={theme.colors.danger} />} label="Streak" value={String(user?.streak ?? 0)} />
-        </View>
-
-        {/* Notifications */}
-        <Section title="Notifications">
-          <Row
-            icon={<Bell size={18} color={theme.colors.primary} />}
-            title="Daily check-in reminder"
-            sub="Get a nudge every day at 9 AM"
-            right={<Switch value={reminder} onValueChange={setReminder} testID="reminder-switch" />}
-          />
-        </Section>
 
         {/* Quick access — dynamic from admin config */}
         <Section title="Quick Access">
@@ -259,16 +241,6 @@ function Row({
       </View>
       {right || (onPress ? <ChevronRight size={18} color={theme.colors.muted} /> : null)}
     </TouchableOpacity>
-  );
-}
-
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <View style={styles.stat}>
-      <View style={styles.statIcon}>{icon}</View>
-      <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
-      <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
-    </View>
   );
 }
 

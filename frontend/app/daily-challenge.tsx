@@ -10,6 +10,8 @@ import { theme } from "../src/lib/theme";
 import { api } from "../src/lib/api";
 import { useAuth } from "../src/context/AuthContext";
 import InterstitialAdModal from "../src/components/InterstitialAdModal";
+import RewardedAdModal from "../src/components/RewardedAdModal";
+import { useGameAdConfig } from "../src/hooks/useGameAdConfig";
 import NativeAd from "../src/components/NativeAd";
 import MaintenanceCard from "../src/components/MaintenanceCard";
 import { useMaintenance } from "../src/hooks/useMaintenance";
@@ -20,12 +22,13 @@ export default function DailyChallenge() {
   const maint = useMaintenance("/daily-challenge");
   const router = useRouter();
   const { refreshUser } = useAuth();
+  const adCfg = useGameAdConfig("daily_challenge");
   const [claimed, setClaimed] = useState<boolean | null>(null);
   const [picking, setPicking] = useState(false);
   const [revealedBox, setRevealedBox] = useState<number | null>(null);
   const [reward, setReward] = useState<number | null>(null);
   const [jackpot, setJackpot] = useState(false);
-  const [showInterstitial, setShowInterstitial] = useState(false);
+  const [showRewarded, setShowRewarded] = useState(false);
   const [pendingJackpot, setPendingJackpot] = useState<number | null>(null);
 
   const loadState = useCallback(() => {
@@ -49,9 +52,9 @@ export default function DailyChallenge() {
       setJackpot(r.jackpot);
       setClaimed(true);
       await refreshUser();
-      // Defer jackpot popup until after the interstitial closes.
+      // Defer jackpot popup until after the rewarded ad closes.
       if (r.jackpot) setPendingJackpot(r.reward);
-      setShowInterstitial(true);
+      setShowRewarded(true);
     } catch (e: any) {
       toast.error("Error", { description: e?.message || "Could not open box" });
       setRevealedBox(null);
@@ -60,8 +63,8 @@ export default function DailyChallenge() {
     }
   };
 
-  const onInterstitialDone = () => {
-    setShowInterstitial(false);
+  const onAdDone = () => {
+    setShowRewarded(false);
     if (pendingJackpot !== null) {
       const amt = pendingJackpot;
       setPendingJackpot(null);
@@ -132,9 +135,15 @@ export default function DailyChallenge() {
       <NativeAd testID="dc-native-ad" />
 
       <InterstitialAdModal
-        visible={showInterstitial}
+        visible={showRewarded && adCfg.ad_type === "interstitial"}
         duration={3}
-        onDone={onInterstitialDone}
+        onDone={onAdDone}
+      />
+      <RewardedAdModal
+        visible={showRewarded && adCfg.ad_type !== "interstitial"}
+        duration={3}
+        onReward={onAdDone}
+        onClose={onAdDone}
       />
     </SafeAreaView>
   );

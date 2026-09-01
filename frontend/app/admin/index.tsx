@@ -100,6 +100,9 @@ export default function AdminHome() {
         <Tile icon={<Gamepad2 size={20} color={theme.colors.primary} />} label="Game Rewards"
           sub="Higher-Lower streak tiers, Memory, TTT, Math, Tap Rush, Trivia"
           onPress={() => router.push("/admin/game-rewards")} testID="admin-game-rewards" />
+        <Tile icon={<Megaphone size={20} color={theme.colors.primary} />} label="Game Ads"
+          sub="Set ad type & how often ads show per game"
+          onPress={() => router.push("/admin/game-ads")} testID="admin-game-ads" />
         <Tile icon={<Wrench size={20} color={theme.colors.primary} />} label="Maintenance"
           sub="Toggle Coming Soon per tab / task / game / wallet screen"
           onPress={() => router.push("/admin/maintenance")} testID="admin-maintenance" />

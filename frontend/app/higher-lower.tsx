@@ -13,6 +13,7 @@ import NativeAd from "../src/components/NativeAd";
 import RewardedAdModal from "../src/components/RewardedAdModal";
 import InterstitialAdModal from "../src/components/InterstitialAdModal";
 import { useGameSession } from "../src/hooks/useGameSession";
+import { useGameAdConfig } from "../src/hooks/useGameAdConfig";
 import MaintenanceCard from "../src/components/MaintenanceCard";
 import { useMaintenance } from "../src/hooks/useMaintenance";
 
@@ -41,7 +42,8 @@ export default function HigherLower() {
   const maint = useMaintenance("/higher-lower");
   const router = useRouter();
   const { refreshUser } = useAuth();
-  const session = useGameSession(10, 5, "tm:game:hl");
+  const adCfg = useGameAdConfig("higher_lower");
+  const session = useGameSession(adCfg.chances_per_ad, adCfg.every_n, "tm:game:hl");
   const [showRewardedAd, setShowRewardedAd] = useState(false);
   const [state, setState] = useState<State | null>(null);
   const [card, setCard] = useState<number | null>(null);

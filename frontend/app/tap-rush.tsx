@@ -10,6 +10,7 @@ import NativeAd from "../src/components/NativeAd";
 import RewardedAdModal from "../src/components/RewardedAdModal";
 import InterstitialAdModal from "../src/components/InterstitialAdModal";
 import { useGameSession } from "../src/hooks/useGameSession";
+import { useGameAdConfig } from "../src/hooks/useGameAdConfig";
 import MaintenanceCard from "../src/components/MaintenanceCard";
 import { useMaintenance } from "../src/hooks/useMaintenance";
 
@@ -55,7 +56,8 @@ export default function TapRush() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { refreshUser } = useAuth();
-  const session = useGameSession(5, 0, "tm:game:tap");
+  const adCfg = useGameAdConfig("tap");
+  const session = useGameSession(adCfg.chances_per_ad, adCfg.every_n, "tm:game:tap");
   const [showRewardedAd, setShowRewardedAd] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);

@@ -6,6 +6,7 @@ import {
   RefreshCw,
 } from "lucide-react-native";
 import { theme, pointsToInr } from "../lib/theme";
+import AutoText from "./AutoText";
 
 const BG = "https://images.pexels.com/photos/7135024/pexels-photo-7135024.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
 
@@ -60,10 +61,10 @@ export default function BalanceCard({
           </View>
           <Text style={styles.label}>{walletLabel || "BALANCE"}</Text>
         </View>
-        <Text style={styles.points} testID="balance-points">
+        <AutoText style={styles.points} numberOfLines={1} testID="balance-points">
           {points.toLocaleString()} pts
-        </Text>
-        <Text style={styles.inr}>≈ ₹{pointsToInr(points)}</Text>
+        </AutoText>
+        <AutoText style={styles.inr} numberOfLines={1}>≈ ₹{pointsToInr(points)}</AutoText>
       </View>
 
       {onAction && (

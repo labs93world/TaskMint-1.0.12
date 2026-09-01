@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
   },
   row: { flexDirection: "row", alignItems: "center", gap: 12 },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#eee" },
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
   },
   balancePillText: { color: theme.colors.primary, fontWeight: "800", fontSize: 13 },
-  section: { paddingHorizontal: theme.spacing.lg, marginBottom: theme.spacing.lg },
+  section: { paddingHorizontal: theme.spacing.lg, marginBottom: theme.spacing.md },
   sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: theme.spacing.md },
   sectionTitle: {
     fontSize: 18, fontWeight: "800", color: theme.colors.text, marginBottom: theme.spacing.md,
