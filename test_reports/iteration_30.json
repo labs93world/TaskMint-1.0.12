@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 30 — Broad no-error sweep after single-wallet + per-game ad gating overhaul. RESULT: PASS. Backend: 14/14 tests in /app/backend/tests/test_iteration30_error_sweep.py all green — no 5xx anywhere. Verified: /api/auth/device 200, /api/auth/me 200, /api/app-config 200 (contains game_ad_config with all 9 keys checkin/higher_lower/memory/tictactoe/math/daily_challenge/tap/trivia/survey — each with ad_type/chances_per_ad/every_n), /api/campaigns 200 (reward_inr present), /api/withdraw-settings 200 (min_withdrawal>0 int), /api/tasks/surveys/random?limit=1 returns exactly 1 survey with questions, /api/tasks/quizzes/random 200, /api/wallet/transactions 200, all 8 game status paths <500, /api/withdraw single-wallet returns 400 below-min & over-balance (no source field needed), /api/admin/app-config GET+PUT round-trip persists (memory.every_n=9 → re-GET reflects → reset). Frontend UI (Expo web @ 390×844): booted via / → welcome → Continue click → /home?welcome=1. Then swept 15 routes: /home /earn /wallet /profile /withdraw /surveys /quizzes /checkin /higher-lower /memory-match /tic-tac-toe /math-sprint /daily-challenge /tap-rush /trivia-streak — every route loaded, NO red-screen, NO console errors (after filtering ignored deprecation warnings), NO unhandled rejections. Ad-gated regression: Higher-Lower 'Watch Ad to Get Chances' → interstitial fallback modal opens & dismisses cleanly; Memory-Match 'Watch Ad to Get Chances' → rewarded fallback modal opens with 3 CTA hits & Skip works; Daily Check-in and Daily Challenge were in 'already used today' state (single-use per day for this device) — those endpoints returned expected 400 business validations, no crash. Reward labels reflect admin config (verified Trivia Streak label '+1 pts per correct answer • +2 pts bonus per streak step' — matches iter29 reactive label plumbing). Deprecated packages: none detected in scope. Ignored (per review request): RN-web shadow*/pointerEvents warnings, Reanimated/useNativeDriver warnings, Metro 'well-known versions' & 'Cannot pipe to a closed stream' dev-server noise.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration30_error_sweep.py",
+    "/app/test_reports/pytest/iter30_sweep.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py still >3100 lines — earlier iter27 recommendation to split into modules is still open (not a blocker for this pass).",
+    "Iter29 flagged memory-match.tsx line 141 hardcodes '/5' denominator instead of reading adCfg.chances_per_ad — that item is unaddressed by this iteration's scope (Phase 3 cleanup) but did not surface any console error; leaving as a pre-existing LOW.",
+    "Iter29 also flagged checkin.tsx and daily-challenge.tsx hard-wiring their ad_type (interstitial/rewarded) instead of reading from game_ad_config — same status, not this pass's scope."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration30_error_sweep.py",
+    "/app/test_reports/pytest/iter30_sweep.xml",
+    "/app/test_reports/iteration_30.json"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14)",
+    "frontend": "100% — 15/15 routes loaded clean, 0 console errors, 0 red-screens"
+  },
+  "seed_data_creation": "Transient TEST_dev_* device users for auth/withdraw/admin tests. Admin app-config was mutated (memory.every_n=9) and reset in finally block. No production data touched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend URL is EXPO_PUBLIC_BACKEND_URL (not EXPO_BACKEND_URL). Quizzes endpoint is /api/tasks/quizzes/random?limit=N (not /api/tasks/quizzes). Continue text button on welcome navigates to /home?welcome=1. Correct game routes: /higher-lower /memory-match /tic-tac-toe /math-sprint /daily-challenge /tap-rush /trivia-streak /checkin. Fallback ad modal signatures: Rewarded = 'Watch this ad' + 'Skip ad (no reward)'; Interstitial = 'Real ads show in the installed app' + 'Continue'. Checkin & daily-challenge are single-use per day per user, so 400 on repeated attempts is expected business validation (not a bug).",
+  "rca_of_issue": "N/A — no errors surfaced in this pass. The single benign 400 seen in browser console during the ad-modal regression came from /api/checkin (or /api/daily-challenge) on a device that had already claimed today; that is intentional server-side validation, not a runtime error."
+}
