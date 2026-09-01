@@ -319,7 +319,7 @@ class ReferralSettings(BaseModel):
     sharing_text: str = "🎉 Join me on TaskMint and earn real cash! Use my code {code} when signing up."
 
 class AppVersionInfo(BaseModel):
-    latest_version: str = "1.0.0"
+    latest_version: str = "1.0.1"
     min_supported_version: str = "1.0.0"
     play_store_url: str = "https://play.google.com/store/apps/details?id=com.labs93world.taskmint"
     force_update: bool = False
