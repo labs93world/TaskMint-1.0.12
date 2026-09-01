@@ -1924,18 +1924,18 @@ async def admin_update_withdraw(withdraw_id: str, payload: WithdrawUpdate, _: di
     await db.withdrawals.update_one({"id": withdraw_id}, {"$set": update})
 
     # ----- Referral payout on successful withdrawal (mode = withdrawal / both) -----
-    if payload.status == "paid" and wd.get("status") != "paid":
+    if payload.status == "successful" and wd.get("status") != "successful":
         meta = await get_app_meta()
         mode = (meta.get("referral_mode") or "streak").lower()
         if mode in ("withdrawal", "both"):
             user_doc = await db.users.find_one({"user_id": wd["user_id"]}, {"_id": 0, "referred_by": 1})
-            referrer_code = (user_doc or {}).get("referred_by")
-            if referrer_code:
-                referrer = await db.users.find_one({"referral_code": referrer_code}, {"_id": 0, "user_id": 1})
+            referrer_id = (user_doc or {}).get("referred_by")
+            if referrer_id:
+                referrer = await db.users.find_one({"user_id": referrer_id}, {"_id": 0, "user_id": 1})
                 if referrer:
-                    # Count successful (paid) withdrawals so far for this referred user.
+                    # Count successful withdrawals so far for this referred user.
                     paid_count = await db.withdrawals.count_documents({
-                        "user_id": wd["user_id"], "status": "paid"
+                        "user_id": wd["user_id"], "status": "successful"
                     })
                     # Find matching tier where withdrawals == paid_count.
                     tiers = meta.get("referral_withdrawal_tiers") or []

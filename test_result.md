@@ -404,3 +404,11 @@ agent_communication:
           `"daily_watches_used": 0` inside reset_daily_limits_if_needed alongside
           spins/scratches, plus updates the in-memory user dict (line 254).
       Watch & Earn endpoint is now fully working. No remaining backend issues from current_focus.
+
+## Iteration 27 (fork agent) — Comprehensive backend regression + CRITICAL fix
+- Ran full backend regression (42/42 pass) across auth, tasks/games earn+claim, referrals, wallet/withdraw, campaigns, admin.
+- CRITICAL BUG FIXED in server.py admin_update_withdraw (~line 1927):
+  1. status compared to "paid" but WithdrawUpdate Literal only allows pending|successful|rejected → referral withdrawal-mode bonus NEVER paid. Fixed "paid" → "successful" (2 places).
+  2. referrer looked up by referral_code but referred_by stores a user_id → referrer never found. Fixed to look up by user_id.
+- Verified: syntax OK, backend restarts clean, /api/version returns 1.0.1.
+- Build config verified deployment-ready: AdMob Kotlin 2.1.0, react-native-google-mobile-ads 16.3.4, yarn.lock (concat-map/brace-expansion) intact, requirements.txt clean, app.json name/package/version=1.0.1.
