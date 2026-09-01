@@ -6,7 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Platform } from "react-native";
 import * as NavigationBar from "expo-navigation-bar";
 import * as SplashScreen from "expo-splash-screen";
-import { AuthProvider, useAuth } from "../src/context/AuthContext";
+import { AuthProvider } from "../src/context/AuthContext";
 import NoInternetGate from "../src/components/NoInternetGate";
 import { Toaster } from "sonner-native";
 import { loadAdSettings } from "../src/lib/adConfig";
@@ -97,14 +97,15 @@ export default function RootLayout() {
 }
 
 /**
- * Hides the native splash screen as soon as the AuthProvider has finished its
- * initial token check, eliminating the white flash between native splash and
- * the first rendered route.
+ * Hides the OS/native splash immediately on the first JS frame so the branded
+ * JS loading screen (app/index.tsx) becomes the only splash users perceive.
+ * (Android 12+/iOS always show a brief OS splash that cannot be fully removed,
+ * but releasing it on mount hands off to index.tsx instantly with no lingering
+ * native splash and no white flash — both use the same #4F46E5 background.)
  */
 function SplashGate() {
-  const { loading } = useAuth();
   useEffect(() => {
-    if (!loading) SplashScreen.hideAsync().catch(() => {});
-  }, [loading]);
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
   return null;
 }
