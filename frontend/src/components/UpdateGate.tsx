@@ -74,9 +74,10 @@ export default function UpdateGate({
       await adminLogin(email.trim(), pwd);
       setAdminModal(false);
       setEmail(""); setPwd("");
-      // /admin/* is exempt from update / maintenance gates → admin can sign in
-      // and disable force-update / fix maintenance from /admin/settings.
-      router.push("/admin/settings");
+      // Admin is now exempt from the gate (UpdateGateWrapper). Route to the admin
+      // panel — mirrors the working Profile admin-login flow. From there the admin
+      // can open "App Update" and turn force-update off.
+      router.push("/admin");
     } catch (e: any) {
       toast.error("Login failed", { description: e?.message || "Invalid admin credentials." });
     } finally {

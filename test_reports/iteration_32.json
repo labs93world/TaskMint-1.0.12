@@ -1,0 +1,50 @@
+{
+  "summary": "Iteration 32 — Re-verified force-update gate after iter31 fixes (installed=app.json version, admin escape router.push('/admin')). Backend: 6/6 PASS (public /api/version + admin /admin/version GET/PUT round-trip + reset). Frontend: 4/4 primary cases PASS on Expo web preview — Case C (latest=1.0.1==installed, force=false → NO gate, welcome/home visible) PASS (previously FAIL); Case A (latest=1.0.2, force=true → gate visible, update-btn present, update-skip absent) PASS; Case B (latest=1.0.2, force=false → gate visible with working update-skip that dismisses) PASS; Case D (long-press admin escape → 200 admin-login → gate hides and lands on /admin, NOT /login) PASS when a device session already exists (previously FAIL). /admin/version page renders correctly. Regression PASS — Home/Earn/Wallet/Profile tabs navigate cleanly with no gate active. State reset at end (latest_version=1.0.1, min_supported=1.0.0, force_update=false, release_notes='') and verified via /api/version. ONE RESIDUAL EDGE-CASE: on a truly fresh install (no device session_token yet, e.g. first open before user taps Continue), POST /auth/admin-login returns 401 because AuthContext.adminLogin() does not first ensure a device session exists (api() sends no Bearer). This means an admin cannot escape the gate on first-cold-start install; they'd have to open the app once, dismiss/skip or reach Continue → get a device session → then admin-login works. Not blocking under the review-request definition (gate normally shows only for returning users who already have a session), but worth reporting.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "UpdateGate.submitAdmin → AuthContext.adminLogin (/app/frontend/src/context/AuthContext.tsx:167-173)",
+        "issue": "adminLogin calls /auth/admin-login WITHOUT auth:false and WITHOUT first ensuring a device session exists. On a fresh install where the update gate blocks BEFORE the user has tapped Continue on /login, there is no Bearer token → backend returns 401 (admin-login must upgrade an existing device session). Fix: in submitAdmin (or adminLogin), if getToken() is null, call deviceLogin() first, then adminLogin().",
+        "testID": "update-admin-submit",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "UpdateGate long-press (/app/frontend/src/components/UpdateGate.tsx:91-102)",
+        "issue": "Review request mentions 'long-press Skip for now/logo' to open admin login, but onLongPress is only wired on update-btn (line 117). The update-logo-wrap and update-skip do NOT accept a long-press. Not a blocker (btn long-press works), but the alternate hint in the spec doesn't work.",
+        "testID": "update-logo-wrap",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration31_force_update.py",
+    "/app/test_reports/pytest/iter32_force_update.xml"
+  ],
+  "action_items": [
+    "OPTIONAL: In AuthContext.adminLogin (src/context/AuthContext.tsx:167) — if no token in storage, call deviceLogin() first to create an anonymous session so admin-login can upgrade it. Otherwise the gate's admin escape returns 401 on truly-fresh installs.",
+    "OPTIONAL: Wire onLongPress on the logo wrap and/or Skip button too (UpdateGate.tsx) so the docstring/spec wording ('long-press logo or Skip') actually matches behavior.",
+    "State was reset to defaults at end (verified 200 + /api/version)."
+  ],
+  "critical_code_review_comments": [
+    "UpdateGateHost `installed` fallback chain now correctly uses `appJson.expo.version` — Case C verified as PASS on the web preview.",
+    "UpdateGate.submitAdmin now routes to '/admin' (matching Profile flow) — Case D lands on /admin, gate hides, admin panel loads correctly.",
+    "adminLogin (AuthContext.tsx:167) should defensively call deviceLogin() when getToken() is null; otherwise a fresh-install user cannot escape the gate as admin (401)."
+  ],
+  "updated_files": [
+    "/app/test_reports/pytest/iter32_force_update.xml",
+    "/app/test_reports/iteration_32.json"
+  ],
+  "success_rate": {
+    "backend": "100% (6/6 in test_iteration31_force_update.py, reused)",
+    "frontend": "100% for all 4 requested cases (A/B/C/D) + regression. 1 residual edge-case (first-install admin escape 401) reported but not in retest scope."
+  },
+  "seed_data_creation": "Transient device sessions (TEST_admin_iter32 + TEST_dev_* in pytest). Admin session upgraded on same token. /admin/version toggled between 1.0.1(false) → 1.0.2(force=true) → 1.0.2(force=false) → back to 1.0.1(false, notes='') as final state. Verified reset via GET /api/version.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All 4 gate cases now PASS on Expo web. Only remaining item is that AuthContext.adminLogin() fails with 401 when there is no device session yet (fresh install). Reproduce by clearing localStorage before update gate is shown, then submitting admin creds — 401 in Network tab, URL bounces to /login. Fix path: AuthContext.adminLogin should ensureDeviceSession() first, or backend /auth/admin-login should auto-create a session when Bearer is missing. Do NOT modify _layout.tsx installed-detection — it now works correctly via appJson import.",
+  "rca_of_issue": "Iter31 BUG 1 root cause (installed=='0.0.0' on web) FIXED by adding `((appJson as any)?.expo?.version as string)` to the installed fallback chain in UpdateGateHost — confirmed installed=1.0.1 on web now. Iter31 BUG 2 root cause (post-admin router.push('/admin/settings') bounced to /login) FIXED by changing to router.push('/admin') matching the working Profile flow — confirmed lands at /admin with is_admin=true and gate hides. Residual edge-case: adminLogin on a session-less client hits 401 (admin-login endpoint requires Bearer) — user must first tap Continue to create device session, but the gate is a full-screen Modal so on a fresh install this is unreachable. Mitigation: adminLogin should call deviceLogin() first when no token, or backend should accept admin-login without a prior session."
+}

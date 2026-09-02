@@ -446,3 +446,8 @@ Pending Phase 3: 6k full live reward labels across all games; item 7 AutoSizeTex
 - Item 7: added reusable src/components/AutoText.tsx (adjustsFontSizeToFit wrapper); applied to BalanceCard. Broader rollout available.
 - Item 8: native splash + JS loading both appear in sequence; splash hides right after auth token check (no artificial delay) = fast open.
 Verified: lint clean on all changed files; memory-match smoke shows rewarded gating + dynamic chances 0/1 + dynamic reward label.
+
+## Force-update gate re-wire fixes (fork agent, post iter31)
+- Bug1 (gate always showed on web): installed version resolved to "0.0.0" because Constants.expoConfig.version empty on web. Fix in app/_layout.tsx UpdateGateHost: `installed = Application.nativeApplicationVersion || appJson.expo.version || Constants.expoConfig?.version || "0.0.0"` (import ../app.json). Verified via screenshot: latest=installed=1.0.1 -> NO gate (welcome screen shows).
+- Bug2 (admin escape from gate): UpdateGate.submitAdmin now router.push("/admin") (mirrors working Profile flow) instead of "/admin/settings" which bounced.
+- Native build reads real version via expo-application; force ON => hard block (no Skip), force OFF+outdated => dismissible.

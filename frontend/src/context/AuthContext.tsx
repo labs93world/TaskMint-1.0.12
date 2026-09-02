@@ -165,12 +165,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const adminLogin = useCallback(async (email: string, password: string) => {
+    // On a truly-fresh install the update gate can appear before the user has a
+    // device session. admin-login needs a bearer token, so establish a device
+    // session first if none exists — otherwise the call 401s and bounces.
+    const existing = await getToken();
+    if (!existing) {
+      await deviceLogin();
+    }
     const res = await api<{ user: AppUser }>("/auth/admin-login", {
       method: "POST",
       body: { email, password },
     });
     setUser(res.user);
-  }, []);
+  }, [deviceLogin]);
 
   const adminLogout = useCallback(async () => {
     const res = await api<{ user: AppUser }>("/auth/admin-logout", { method: "POST" });
