@@ -8,7 +8,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Copy, Share2, Users, Gift, Check, UserPlus } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import { useAuth } from "../src/context/AuthContext";
-import { theme } from "../src/lib/theme";
+import { theme, getExchangeRatio } from "../src/lib/theme";
 import { api } from "../src/lib/api";
 import MaintenanceCard from "../src/components/MaintenanceCard";
 import { useMaintenance } from "../src/hooks/useMaintenance";
@@ -32,6 +32,7 @@ type ReferralEntry = {
   user_id: string; name: string; streak: number;
   last_checkin?: string | null; joined_at?: string | null;
   rewards_paid: number[];
+  earned_points?: number;
 };
 
 export default function ReferScreen() {
@@ -271,7 +272,10 @@ export default function ReferScreen() {
             <>
               <Text style={[styles.howTitle, { marginTop: 16 }]}>Referral History</Text>
               {history.map((h) => {
-                const checkedIn = !!h.last_checkin;
+                const when = h.joined_at || h.last_checkin || null;
+                const earnedPts = h.earned_points ?? 0;
+                const earnedInr = earnedPts / getExchangeRatio();
+                const earnedLabel = `₹${earnedInr % 1 === 0 ? earnedInr.toFixed(0) : earnedInr.toFixed(2)}`;
                 return (
                   <View key={h.user_id} style={styles.histRow} testID={`refhist-${h.user_id}`}>
                     <View style={styles.histAvatar}>
@@ -280,13 +284,17 @@ export default function ReferScreen() {
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={styles.histName} numberOfLines={1}>{h.name}</Text>
                       <Text style={styles.histSub} numberOfLines={1}>
-                        Streak {h.streak} day{h.streak === 1 ? "" : "s"}
-                        {checkedIn ? ` • Last check-in ${new Date(h.last_checkin!).toLocaleDateString()}` : " • Not checked in yet"}
+                        {when
+                          ? new Date(when).toLocaleString(undefined, {
+                              day: "2-digit", month: "short", year: "numeric",
+                              hour: "2-digit", minute: "2-digit",
+                            })
+                          : "—"}
                       </Text>
                     </View>
-                    <View style={[styles.histBadge, h.rewards_paid.length > 0 ? styles.histBadgePaid : null]}>
-                      <Text style={[styles.histBadgeText, h.rewards_paid.length > 0 ? { color: theme.colors.success } : null]}>
-                        {h.rewards_paid.length > 0 ? `Paid ×${h.rewards_paid.length}` : "Pending"}
+                    <View style={[styles.histBadge, earnedPts > 0 ? styles.histBadgePaid : null]}>
+                      <Text style={[styles.histBadgeText, earnedPts > 0 ? { color: theme.colors.success } : null]}>
+                        {earnedLabel}
                       </Text>
                     </View>
                   </View>

@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Plus, Trash2, Pencil, Eye, EyeOff, Pin, PinOff, X, Copy } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
-import { theme } from "../../src/lib/theme";
+import { theme, getExchangeRatio } from "../../src/lib/theme";
 import { api } from "../../src/lib/api";
 import ImagePickerField from "../../src/components/ImagePickerField";
 
@@ -187,7 +187,7 @@ export default function AdminCampaigns() {
             <TextInput value={f2Ph} onChangeText={setF2Ph}
               placeholder="Field 2 placeholder / hint"
               placeholderTextColor={theme.colors.muted} style={styles.input} testID="cmp-f2-ph" />
-            <TextInput value={pts} onChangeText={setPts} placeholder="Reward (points, 100=₹1)"
+            <TextInput value={pts} onChangeText={setPts} placeholder={`Reward (points, ${getExchangeRatio()}=₹1)`}
               placeholderTextColor={theme.colors.muted} style={styles.input}
               keyboardType="number-pad" testID="cmp-pts" />
 
@@ -234,7 +234,7 @@ export default function AdminCampaigns() {
                   {c.hidden && <Text style={[styles.badge, styles.badgeHidden]}>HIDDEN</Text>}
                 </View>
                 <Text style={styles.itemSub} numberOfLines={1}>{c.note}</Text>
-                <Text style={styles.itemReward}>₹{c.reward_inr} • {c.reward_points} pts • {c.category}</Text>
+                <Text style={styles.itemReward}>₹{(c.reward_points / getExchangeRatio()) % 1 === 0 ? (c.reward_points / getExchangeRatio()).toFixed(0) : (c.reward_points / getExchangeRatio()).toFixed(2)} • {c.reward_points} pts • {c.category}</Text>
                 <TouchableOpacity
                   onPress={async () => {
                     const deepLink = `/task/${c.id}`;

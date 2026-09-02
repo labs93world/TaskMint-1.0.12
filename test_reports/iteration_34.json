@@ -1,0 +1,38 @@
+{
+  "summary": "Backend + code-level verification for the exchange-ratio fix and Referral History reshape. Backend suite (7/7 pytest tests) confirms: PUT /api/admin/app-config persists exchange_points_per_inr=1000; GET /api/withdraw-settings returns exchange_points_per_inr=1000 (chips [100,10000,30000,50000] map to ₹0.10 / ₹10 / ₹30 / ₹50); GET /api/campaigns returns reward_inr computed live from ratio (verified: 1500→1.5, 3000→3.0, 5000→5.0, 8000→8.0, 2500→2.5); GET /api/admin/campaigns exposes raw reward_points so admin list computes ₹ client-side; GET /api/referrals/history returns joined_at + earned_points fields. Frontend loads cleanly at mobile viewport (390x844). Code review confirms all 4 admin/user screens (referral-settings.tsx, withdraw-settings.tsx, campaigns.tsx, refer.tsx) now use getExchangeRatio() from src/lib/theme, and AuthContext.tsx (line 193-194) syncs the ratio from /withdraw-settings on cold start. Deprecated Expo warnings detected: shadow* style props and props.pointerEvents (non-blocking, from lucide-react-native / expo-linear-gradient internals).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "shadow* style props", "issue": "React Native web warns 'shadow* style props are deprecated. Use boxShadow'. Some views (heroWrap in refer.tsx, shareBtnWrap, StyleSheet shadow objects in theme.ts) still use shadowColor / shadowOffset / shadowOpacity / shadowRadius. Reference: /app/frontend/src/lib/theme.ts:17-32 and /app/frontend/app/refer.tsx:327,358."},
+      {"component": "props.pointerEvents", "issue": "React Native web warns 'props.pointerEvents is deprecated. Use style.pointerEvents'. Reference: /app/frontend/app/refer.tsx:140 (heroWatermark uses pointerEvents='none' as a prop)."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration34_exchange_ratio.py",
+    "/app/test_reports/pytest/iter34_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Replace shadow* StyleSheet keys with boxShadow-compatible values or migrate to React Native 0.76+ boxShadow to silence deprecation warnings.",
+    "(Optional) Move pointerEvents='none' from prop to style in refer.tsx heroWatermark View.",
+    "Manually spot-check the admin screens in the running app (Profile → long-press avatar → admin login → Referral Rewards / Withdraw Amounts / Offerwall) to confirm ₹ labels render with ratio=1000 — the underlying data is verified but UI was not exercised end-to-end due to the admin gating flow."
+  ],
+  "critical_code_review_comments": [
+    "Good: all 4 target files (referral-settings.tsx, withdraw-settings.tsx, campaigns.tsx, refer.tsx) import getExchangeRatio from theme.ts and use it in every INR calculation and helper text — no hardcoded /100 remains.",
+    "Good: backend /campaigns endpoint recomputes reward_inr on the server using the live app_meta ratio (server.py:858-861), so users get correct ₹ even without a client refresh.",
+    "Good: /admin/campaigns returns raw reward_points and the admin list divides by getExchangeRatio() client-side (campaigns.tsx:237), matching the requirement.",
+    "Good: /referrals/history returns joined_at and earned_points, and refer.tsx renders joined_at as a locale-formatted subtitle and shows ₹ earned in the badge (refer.tsx:275-299) — replaces the old 'Streak X days • last check-in' + Paid/Pending badge.",
+    "Minor: theme.ts default _exchangeRatio is 100 — depends on AuthProvider bootstrap to update it. First render before /withdraw-settings responds will briefly display INR using 100. Consider persisting last-known ratio in AsyncStorage for cold-start correctness."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration34_exchange_ratio.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "code-verified (no interactive admin flow run)"},
+  "seed_data_creation": "TEST_device_iter34_admin and TEST_device_iter34_user device sessions were created via /api/auth/device; the admin session was then remapped to the canonical admin_altaff record via /api/auth/admin-login. app_settings meta.exchange_points_per_inr is now 1000 in the DB (persisted by the tests, as instructed).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "test_iteration34_exchange_ratio.py is the regression suite for the exchange-ratio + referral-history changes. It leaves exchange_points_per_inr=1000 in app_settings; reset via PUT /api/admin/app-config if a prior value is needed. Public URL is EXPO_PUBLIC_BACKEND_URL (not EXPO_BACKEND_URL) in this repo.",
+  "rca_of_issue": "N/A — feature verification pass. The admin-side ₹ mislabelling was caused by hardcoded /100 divisors in referral-settings, withdraw-settings and campaigns screens; the fix routes every conversion through getExchangeRatio(), which the AuthProvider syncs from /withdraw-settings.exchange_points_per_inr on cold start. Backend /campaigns already recomputes reward_inr live; /admin/campaigns intentionally returns raw points."
+}

@@ -6,7 +6,7 @@ import { toast } from "sonner-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Save, Plus, Trash2 } from "lucide-react-native";
-import { theme } from "../../src/lib/theme";
+import { theme, getExchangeRatio } from "../../src/lib/theme";
 import { api } from "../../src/lib/api";
 
 export default function AdminWithdrawSettings() {
@@ -64,14 +64,14 @@ export default function AdminWithdrawSettings() {
 
         <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, gap: 14 }}>
           <Text style={styles.note}>
-            These amounts (in points) are shown as selection chips on the user Withdraw screen. 100 pts = ₹1.
-            The 100-pts chip auto-hides for users who have already made their first withdrawal.
+            These amounts (in points) are shown as selection chips on the user Withdraw screen. {getExchangeRatio()} pts = ₹1.
+            The lowest chip auto-hides for users who have already made their first withdrawal.
           </Text>
 
           {amounts.map((n) => (
             <View key={n} style={styles.row} testID={`amt-${n}`}>
               <View>
-                <Text style={styles.amt}>₹{(n / 100).toFixed(0)}</Text>
+                <Text style={styles.amt}>₹{(n / getExchangeRatio()) % 1 === 0 ? (n / getExchangeRatio()).toFixed(0) : (n / getExchangeRatio()).toFixed(2)}</Text>
                 <Text style={styles.amtSub}>{n} points</Text>
               </View>
               <TouchableOpacity onPress={() => remove(n)} style={styles.del} testID={`del-${n}`}>

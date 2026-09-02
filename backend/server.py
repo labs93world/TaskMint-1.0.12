@@ -2414,15 +2414,37 @@ async def referrals_history(user: dict = Depends(get_current_user)):
             "referral_rewards_paid": 1,
         },
     ).sort("created_at", -1).to_list(500)
+
+    # Map each paid streak-day milestone to the points that milestone pays, so
+    # the client can show ₹ earned per referred user (rewards_paid stores the
+    # streak-day milestones that were paid, not points).
+    settings = await get_referral_settings()
+    tiers = settings.get("tiers") or []
+
+    def points_for_milestone(day: int) -> int:
+        if tiers:
+            for t in tiers:
+                if int(t.get("streak_days", 0) or 0) == int(day):
+                    return int(t.get("points", 0) or 0)
+            return 0
+        if int(day) == 7:
+            return int(settings.get("streak_7_reward_points", 1000) or 0)
+        if int(day) == 15:
+            return int(settings.get("streak_15_reward_points", 2000) or 0)
+        return 0
+
     out = []
     for r in rows:
+        paid = r.get("referral_rewards_paid", []) or []
+        earned = sum(points_for_milestone(d) for d in paid)
         out.append({
             "user_id": r.get("user_id"),
             "name": r.get("name"),
             "streak": r.get("streak", 0),
             "last_checkin": r.get("last_checkin"),
             "joined_at": r.get("created_at"),
-            "rewards_paid": r.get("referral_rewards_paid", []) or [],
+            "rewards_paid": paid,
+            "earned_points": earned,
         })
     return out
 

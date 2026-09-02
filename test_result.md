@@ -451,3 +451,8 @@ Verified: lint clean on all changed files; memory-match smoke shows rewarded gat
 - Bug1 (gate always showed on web): installed version resolved to "0.0.0" because Constants.expoConfig.version empty on web. Fix in app/_layout.tsx UpdateGateHost: `installed = Application.nativeApplicationVersion || appJson.expo.version || Constants.expoConfig?.version || "0.0.0"` (import ../app.json). Verified via screenshot: latest=installed=1.0.1 -> NO gate (welcome screen shows).
 - Bug2 (admin escape from gate): UpdateGate.submitAdmin now router.push("/admin") (mirrors working Profile flow) instead of "/admin/settings" which bounced.
 - Native build reads real version via expo-application; force ON => hard block (no Skip), force OFF+outdated => dismissible.
+
+## Admin exchange-ratio fixes + referral history format (fork agent)
+- Fixed hardcoded /100 in admin: referral-settings toINR + "N points=₹1" text, withdraw-settings chip ₹ + text, campaigns/offerwall list ₹ (now reward_points/getExchangeRatio) + placeholder. settings.tsx already used ratio.
+- refer.tsx Referral History: subtitle now shows joined date & time (was "Streak X • last check-in"); badge now shows ₹ earned (was Paid×N/Pending).
+- Backend /referrals/history now returns earned_points (maps paid streak-day milestones -> tier points, legacy 7/15 fallback).
