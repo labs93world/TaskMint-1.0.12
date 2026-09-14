@@ -6,7 +6,7 @@ import { toast } from "sonner-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Save, Users as UsersIcon, Plus, Trash2 } from "lucide-react-native";
-import { theme, getExchangeRatio } from "../../src/lib/theme";
+import { theme } from "../../src/lib/theme";
 import { api } from "../../src/lib/api";
 
 type Tier = { streak_days: number; points: number };
@@ -116,8 +116,7 @@ export default function AdminReferralSettings() {
   const toINR = (pts: string) => {
     const n = parseInt(pts, 10);
     if (isNaN(n)) return "—";
-    const inr = n / getExchangeRatio();
-    return `₹${inr % 1 === 0 ? inr.toFixed(0) : inr.toFixed(2)}`;
+    return `₹${(n / 100).toFixed(0)}`;
   };
 
   return (
@@ -140,7 +139,7 @@ export default function AdminReferralSettings() {
         >
           <Text style={styles.note}>
             Configure milestone rewards and the texts shown on the user-facing Refer & Earn screen.
-            {"\n"}{getExchangeRatio()} points = ₹1. Set 0 to disable a milestone.
+            {"\n"}100 points = ₹1. Set 0 to disable a milestone.
           </Text>
 
           {/* --- Multi-tier --- */}
