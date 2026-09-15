@@ -6,7 +6,7 @@ Covers:
 3) Per-user overrides (custom_exchange_ratio, custom_withdraw_amounts) round-trip
 4) Withdraw uses per-user exchange ratio (inr = points / customRatio)
 5) Reset (DELETE) approved campaign completion deducts credited_points and logs a negative txn
-6) Partial campaign approval auto-creates withdrawal + ledger history using per-user ratio
+6) Campaign approvals never auto-create withdrawal or ledger history
 """
 import time
 import uuid
@@ -343,26 +343,19 @@ class TestMobileSetOnce:
 
 
 
-# ---------- 7) Auto withdrawal history on partial approval ----------
-class TestAutoWithdrawalHistory:
-    def test_partial_approval_creates_withdrawal_and_ledger_row_with_custom_ratio(
+# ---------- 7) No automatic withdrawal history on campaign approval ----------
+class TestNoAutoWithdrawalHistory:
+    def test_partial_approval_creates_no_withdrawal_or_ledger_row(
         self, api, base_url, admin_session, user_session, mongo_db
     ):
         uid = user_session["user_id"]
-        _wait_ok(
-            api.put(
-                f"{base_url}/api/admin/users/{uid}/overrides",
-                json={"custom_exchange_ratio": 500, "custom_withdraw_amounts": [100, 500, 1000]},
-                headers=admin_session["headers"],
-            )
-        )
 
         camp = _wait_ok(
             api.post(
                 f"{base_url}/api/admin/campaigns",
                 json={
-                    "name": f"TEST_AUTO_WD_{int(time.time()*1000)}",
-                    "note": "auto withdrawal history test",
+                    "name": f"TEST_NO_AUTO_WD_{int(time.time()*1000)}",
+                    "note": "no auto withdrawal history test",
                     "logo_url": "https://x.png",
                     "link_url": "https://x",
                     "reward_points": 1000,
@@ -383,6 +376,7 @@ class TestAutoWithdrawalHistory:
             assert r.status_code == 200, r.text
             completion = mongo_db.campaign_completions.find_one({"user_id": uid, "campaign_id": cid})
             assert completion is not None
+            before_points = int(mongo_db.users.find_one({"user_id": uid}).get("points", 0))
 
             _wait_ok(
                 api.put(
@@ -394,11 +388,7 @@ class TestAutoWithdrawalHistory:
 
             history = _wait_ok(api.get(f"{base_url}/api/withdraw/history", headers=user_session["headers"]))
             auto = [w for w in history if w.get("completion_id") == completion["id"]]
-            assert len(auto) == 1
-            assert auto[0]["status"] == "successful"
-            assert auto[0]["source"] == "campaign"
-            assert auto[0]["points"] == 1000
-            assert abs(float(auto[0]["inr_amount"]) - 2.0) < 0.01  # 1000 / custom ratio 500
+            assert len(auto) == 0
 
             ledger = _wait_ok(
                 api.get(f"{base_url}/api/wallet/transactions", headers=user_session["headers"])
@@ -407,9 +397,9 @@ class TestAutoWithdrawalHistory:
                 t for t in ledger
                 if t.get("source") == "withdraw"
                 and t.get("category") == "campaign"
-                and t.get("points") == -1000
             ]
-            assert len(rows) == 1
-            assert "paid externally" in rows[0].get("note", "").lower()
+            assert len(rows) == 0
+            after_points = int(mongo_db.users.find_one({"user_id": uid}).get("points", 0))
+            assert after_points == before_points + 400
         finally:
             mongo_db.campaigns.delete_one({"id": cid})

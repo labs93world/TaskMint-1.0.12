@@ -7,15 +7,18 @@ campaigns, **games**) and withdraw to UPI / bank (100 points = ₹1).
 
 Imported from: https://github.com/93altaff/TaskMint-8-2
 
-## Iteration 35 — Override + automatic withdrawal history fixes
+## Iteration 35 — Override freshness fix
 - **Withdraw override freshness** — Withdraw screen now re-fetches `/auth/me` on every focus and applies the user's latest `custom_withdraw_amounts` and `custom_exchange_ratio` before rendering chips, preventing stale global chips after an admin override. First-withdrawal chip filtering also uses the fresh user record.
-- **Automatic campaign payout history** — Partial/zero campaign approvals create a successful withdrawal row using the effective per-user exchange ratio, tag it with `completion_id`/`auto_created`, and mirror it into the transaction ledger so Wallet and admin Withdrawals filters show the automatic payout. Full approvals still do not create withdrawal rows.
+
+## Iteration 36 — Campaign approval payout correction
+- **No automatic withdrawal history** — campaign approvals now only credit the approved points. Full, partial, and zero-point approvals never create withdrawal records or withdrawal ledger transactions automatically.
+- **Withdraw override freshness retained** — the Withdraw screen continues to load the user's latest custom chips/ratio on focus.
 
 ## Iteration 24 — Admin controls, partial approvals, native ad placement
 - **Partial campaign approval flow** — admin can now use a new **"Approve…"** button next to Approve / Reject on every pending campaign completion. It opens a number-pad prompt where the admin can enter any value `0 → reward_points`.
-  - `0 pts` → user gets no wallet credit; a **successful withdrawal record** is auto-created for the **original** reward (e.g. 1000 pts / ₹10) with `source=campaign`, `method=upi`, populated with the user-submitted form fields (UPI id ← form_field_1, holder ← form_field_2).
-  - Partial (e.g. 400 / 1000) → user gets the 400 pts credited normally, AND a successful withdrawal record is created for the full 1000 pts (treats the campaign as paid-out externally).
-  - Full approval (Approve button or `approved_points` == reward) keeps existing behaviour — full wallet credit, no withdrawal record.
+  - `0 pts` → user gets no wallet credit and no withdrawal record.
+  - Partial (e.g. 400 / 1000) → user gets only the approved 400 pts credited; no automatic withdrawal record.
+  - Full approval (Approve button or `approved_points` == reward) credits the full reward; no withdrawal record.
 - **Admin banners → Hide / Pin / Edit** — every banner row now has Edit (pencil), Pin/Unpin, Hide/Show and Delete actions. Pinned items float to the top, hidden items are excluded from the public `/api/banners` feed. Admins still see all items in the admin list with `PINNED` / `HIDDEN` badges. Tapping Edit pre-fills the form for in-place updates.
 - **Admin campaigns → Hide / Pin / Edit** — same treatment for the Offerwall (`/admin/campaigns`). Same public-feed filtering and pinned-first sort. Edit pre-fills every field including category, difficulty, rules, telegram contact, both proof-field labels & placeholders.
 - **New "Campaigns" category** added to the campaign create/edit form dropdown alongside Survey / Game / App Install / Sign-up / Video / Custom.

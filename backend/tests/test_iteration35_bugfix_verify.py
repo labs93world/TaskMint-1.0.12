@@ -1,13 +1,11 @@
 """Iteration 35 - Bugfix verification tests.
 
 Covers:
-1) BUGFIX 2 E2E: campaign reward 1000 -> user submits proof -> admin partial-approve 400
-   with custom_exchange_ratio=500. Verify /api/withdraw/history has exactly one
-   successful source=campaign record for 1000 pts with INR 2.00, and
-   /api/wallet/transactions has a source=withdraw/category=campaign/-1000 ledger row.
-2) Regression: FULL approval (approved_points omitted) must NOT create an
-   automatic withdrawal history row.
-3) Zero approval (approved_points=0) MUST create the auto withdrawal row.
+1) BUGFIX 2 E2E: campaign reward 1000 -> user submits proof -> admin partial-approve 400.
+   Verify only the 400 approved points are credited and NO automatic withdrawal
+   history or withdrawal ledger row is created.
+2) Regression: FULL approval must NOT create an automatic withdrawal history row.
+3) Zero approval (approved_points=0) must NOT create an automatic withdrawal row.
 4) BUGFIX 1 backend dependency: /auth/me exposes custom_exchange_ratio and
    custom_withdraw_amounts so the Withdraw screen can refresh chips on focus.
 """
@@ -54,10 +52,10 @@ def _submit(api, base_url, user_session, mongo_db, cid):
     return completion
 
 
-class TestPartialApprovalAutoWithdrawal:
-    """BUGFIX 2 - partial approval creates withdrawal history + ledger row"""
+class TestPartialApprovalNoAutoWithdrawal:
+    """Partial approval credits approved points without withdrawal history"""
 
-    def test_partial_approve_400_creates_successful_withdrawal_and_ledger(
+    def test_partial_approve_400_creates_no_withdrawal_or_ledger(
         self, api, base_url, admin_session, user_session, mongo_db
     ):
         uid = user_session["user_id"]
@@ -69,34 +67,24 @@ class TestPartialApprovalAutoWithdrawal:
         cid = _mk_campaign(api, base_url, admin_session, reward=1000)
         try:
             completion = _submit(api, base_url, user_session, mongo_db, cid)
+            before_points = int(mongo_db.users.find_one({"user_id": uid}).get("points", 0))
             _ok(api.put(
                 f"{base_url}{BASE}/admin/campaign-completions/{completion['id']}",
                 json={"status": "approved", "admin_note": "", "approved_points": 400},
                 headers=admin_session["headers"],
             ))
 
-            # /api/withdraw/history - exactly one successful campaign row, 1000 pts, INR 2.00
             history = _ok(api.get(f"{base_url}{BASE}/withdraw/history", headers=user_session["headers"]))
             auto = [w for w in history if w.get("completion_id") == completion["id"]]
-            assert len(auto) == 1, f"expected 1 auto withdrawal, got {len(auto)}"
-            row = auto[0]
-            assert row["status"] == "successful"
-            assert row["source"] == "campaign"
-            assert row["points"] == 1000
-            assert abs(float(row["inr_amount"]) - 2.00) < 0.01, row["inr_amount"]
-            assert row.get("auto_created") is True
+            assert len(auto) == 0, f"partial approval must not auto-create withdrawal, got {auto}"
 
-            # /api/wallet/transactions - source=withdraw/category=campaign/-1000 row
             ledger = _ok(api.get(f"{base_url}{BASE}/wallet/transactions", headers=user_session["headers"]))
             rows = [t for t in ledger
-                    if t.get("source") == "withdraw" and t.get("category") == "campaign"
-                    and t.get("points") == -1000]
-            assert len(rows) == 1, f"expected 1 ledger row, got {len(rows)}"
-            assert "paid externally" in rows[0].get("note", "").lower()
+                    if t.get("source") == "withdraw" and t.get("category") == "campaign"]
+            assert len(rows) == 0, f"partial approval must not log withdraw ledger row, got {rows}"
 
-            # User wallet credited with the 400 approved points
             u = mongo_db.users.find_one({"user_id": uid})
-            assert int(u.get("points", 0)) >= 400
+            assert int(u.get("points", 0)) == before_points + 400
         finally:
             mongo_db.campaigns.delete_one({"id": cid})
 
@@ -126,21 +114,17 @@ class TestFullApprovalNoAutoWithdrawal:
             mongo_db.campaigns.delete_one({"id": cid})
 
 
-class TestZeroApprovalAutoWithdrawal:
-    """Zero approval (approved_points=0) MUST create the auto withdrawal row"""
+class TestZeroApprovalNoAutoWithdrawal:
+    """Zero approval (approved_points=0) must NOT create withdrawal history"""
 
-    def test_zero_approval_creates_withdrawal_row(
+    def test_zero_approval_creates_no_withdrawal_row(
         self, api, base_url, admin_session, user_session, mongo_db
     ):
         uid = user_session["user_id"]
-        _ok(api.put(
-            f"{base_url}{BASE}/admin/users/{uid}/overrides",
-            json={"custom_exchange_ratio": 500, "custom_withdraw_amounts": None},
-            headers=admin_session["headers"],
-        ))
         cid = _mk_campaign(api, base_url, admin_session, reward=1000)
         try:
             completion = _submit(api, base_url, user_session, mongo_db, cid)
+            before_points = int(mongo_db.users.find_one({"user_id": uid}).get("points", 0))
             _ok(api.put(
                 f"{base_url}{BASE}/admin/campaign-completions/{completion['id']}",
                 json={"status": "approved", "admin_note": "", "approved_points": 0},
@@ -148,10 +132,9 @@ class TestZeroApprovalAutoWithdrawal:
             ))
             history = _ok(api.get(f"{base_url}{BASE}/withdraw/history", headers=user_session["headers"]))
             auto = [w for w in history if w.get("completion_id") == completion["id"]]
-            assert len(auto) == 1, f"zero approval should auto-create withdrawal, got {len(auto)}"
-            assert auto[0]["status"] == "successful"
-            assert auto[0]["points"] == 1000
-            assert abs(float(auto[0]["inr_amount"]) - 2.00) < 0.01
+            assert len(auto) == 0, f"zero approval must not auto-create withdrawal, got {auto}"
+            u = mongo_db.users.find_one({"user_id": uid})
+            assert int(u.get("points", 0)) == before_points
         finally:
             mongo_db.campaigns.delete_one({"id": cid})
 

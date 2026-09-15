@@ -147,9 +147,7 @@ class CampaignCompletionUpdate(BaseModel):
     status: Literal["pending", "approved", "rejected"]
     admin_note: Optional[str] = ""
     approved_points: Optional[int] = None  # When approving, override the credited points (0..original).
-                                            # If less than original, a successful withdrawal record is also
-                                            # created for the ORIGINAL points so the user sees a paid-out
-                                            # entry in their withdraw history.
+                                            # Approval only credits points; it never creates a withdrawal row.
 
 class TaskSubmit(BaseModel):
     form_field_1_value: Optional[str] = ""
@@ -2210,55 +2208,8 @@ async def admin_update_completion(
                 category="campaign",
             )
 
-        # 2) If admin reduced the payout (or paid 0), record a successful
-        # withdrawal entry for the ORIGINAL reward so the user sees a paid-out
-        # row in their withdraw history (matches manual payout outside the
-        # in-app wallet). Use the campaign name as the destination descriptor
-        # rather than the user-submitted UPI / holder fields.
-        if approved_points < original_points and original_points > 0:
-            target_user = await db.users.find_one(
-                {"user_id": c["user_id"]},
-                {"_id": 0, "custom_exchange_ratio": 1},
-            )
-            meta = await get_app_meta()
-            ratio = int(
-                (target_user or {}).get("custom_exchange_ratio")
-                or meta.get("exchange_points_per_inr", 100)
-                or 100
-            )
-            if ratio <= 0:
-                ratio = 100
-            wd = WithdrawRequest(
-                user_id=c["user_id"],
-                user_name=c.get("user_name", ""),
-                user_email=c.get("user_email", ""),
-                method="upi",
-                source="campaign",
-                points=original_points,
-                inr_amount=round(original_points / float(ratio), 2),
-                upi_id=c.get("campaign_name", ""),
-                status="successful",
-                admin_note=f"Auto-recorded for {c['campaign_name']} approval (paid externally)",
-            )
-            wd_doc = wd.dict()
-            wd_doc["updated_at"] = now_iso()
-            wd_doc["auto_created"] = True
-            wd_doc["completion_id"] = completion_id
-            await db.withdrawals.insert_one(wd_doc)
-            # Mirror the withdrawal into the transaction ledger so the Wallet
-            # tab and admin Withdrawals filter show automatic campaign payouts too.
-            txn = Transaction(
-                user_id=c["user_id"], type="withdraw", source="withdraw",
-                category="campaign", points=-original_points,
-                note=f"Auto-recorded for {c['campaign_name']} approval (paid externally)",
-            )
-            await db.transactions.insert_one(txn.dict())
-            # Also keep total_withdrawn in sync for the user.
-            await db.users.update_one(
-                {"user_id": c["user_id"]},
-                {"$inc": {"total_withdrawn": original_points},
-                 "$set": {"has_first_withdrawal": True}},
-            )
+        # Campaign approval only credits the approved points. It must not
+        # create any automatic withdrawal/history record.
     return {"ok": True}
 
 @api_router.delete("/admin/campaign-completions/{completion_id}")
