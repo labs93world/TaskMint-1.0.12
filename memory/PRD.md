@@ -7,6 +7,10 @@ campaigns, **games**) and withdraw to UPI / bank (100 points = ₹1).
 
 Imported from: https://github.com/93altaff/TaskMint-8-2
 
+## Iteration 35 — Override + automatic withdrawal history fixes
+- **Withdraw override freshness** — Withdraw screen now re-fetches `/auth/me` on every focus and applies the user's latest `custom_withdraw_amounts` and `custom_exchange_ratio` before rendering chips, preventing stale global chips after an admin override. First-withdrawal chip filtering also uses the fresh user record.
+- **Automatic campaign payout history** — Partial/zero campaign approvals create a successful withdrawal row using the effective per-user exchange ratio, tag it with `completion_id`/`auto_created`, and mirror it into the transaction ledger so Wallet and admin Withdrawals filters show the automatic payout. Full approvals still do not create withdrawal rows.
+
 ## Iteration 24 — Admin controls, partial approvals, native ad placement
 - **Partial campaign approval flow** — admin can now use a new **"Approve…"** button next to Approve / Reject on every pending campaign completion. It opens a number-pad prompt where the admin can enter any value `0 → reward_points`.
   - `0 pts` → user gets no wallet credit; a **successful withdrawal record** is auto-created for the **original** reward (e.g. 1000 pts / ₹10) with `source=campaign`, `method=upi`, populated with the user-submitted form fields (UPI id ← form_field_1, holder ← form_field_2).

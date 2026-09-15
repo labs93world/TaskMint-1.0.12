@@ -31,6 +31,7 @@ export default function AdminCampaignCompletions() {
   const [items, setItems] = useState<Comp[]>([]);
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
   const [rejectFor, setRejectFor] = useState<string | null>(null);
+  const [resetFor, setResetFor] = useState<string | null>(null);
   const [customFor, setCustomFor] = useState<Comp | null>(null);
   const [historyUser, setHistoryUser] = useState<{ user_id: string; name: string; email: string; mobile?: string | null } | null>(null);
   const [historyTxns, setHistoryTxns] = useState<Txn[]>([]);
@@ -75,6 +76,20 @@ export default function AdminCampaignCompletions() {
     const id = rejectFor;
     setRejectFor(null);
     if (id) submitUpdate(id, "rejected", reason.trim());
+  };
+
+  const onResetConfirm = async (reason: string) => {
+    if (!reason.trim()) { toast.error("Reason required"); return; }
+    const id = resetFor;
+    setResetFor(null);
+    if (!id) return;
+    try {
+      await api(`/admin/campaign-completions/${id}?reason=${encodeURIComponent(reason.trim())}`, { method: "DELETE" });
+      toast.success("Task reset", { description: "Removed; any approved reward was deducted." });
+      load();
+    } catch (e: any) {
+      toast.error("Failed to reset", { description: e?.message });
+    }
   };
 
   const onCustomConfirm = (input: string) => {
@@ -186,6 +201,18 @@ export default function AdminCampaignCompletions() {
                 </TouchableOpacity>
               </View>
             )}
+            {c.status !== "pending" && (
+              <View style={styles.actions}>
+                <TouchableOpacity
+                  style={[styles.btn, { backgroundColor: theme.colors.danger }]}
+                  onPress={() => setResetFor(c.id)}
+                  testID={`reset-${c.id}`}
+                >
+                  <X size={16} color="#fff" />
+                  <Text style={styles.btnText}>Reset</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         ))}
         {filtered.length === 0 && (
@@ -270,6 +297,15 @@ export default function AdminCampaignCompletions() {
         keyboardType="number-pad"
         onCancel={() => setCustomFor(null)}
         onConfirm={onCustomConfirm}
+      />
+      <PromptModal
+        visible={!!resetFor}
+        title="Reset task"
+        placeholder="Reason (approved rewards will be deducted)"
+        confirmLabel="Reset"
+        destructive
+        onCancel={() => setResetFor(null)}
+        onConfirm={onResetConfirm}
       />
     </SafeAreaView>
   );

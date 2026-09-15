@@ -42,19 +42,31 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [firstLoaded, setFirstLoaded] = useState(false);
   const [tab, setTab] = useState<CampaignTab>("offerwall");
+  const [tabOrder, setTabOrder] = useState<CampaignTab[]>(["offerwall", "campaign"]);
+  const tabPickedRef = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
   const [bannerIndex, setBannerIndex] = useState(0);
 
   const load = useCallback(async () => {
     try {
-      const [b, c, comps] = await Promise.all([
+      const [b, c, comps, cfg] = await Promise.all([
         api<Banner[]>("/banners", { auth: false }),
         api<Campaign[]>("/campaigns", { auth: false }),
         api<Completion[]>("/campaign-completions").catch(() => []),
+        api<{ home_default_tab?: string; home_tab_order?: string[] }>("/app-config", { auth: false }).catch(() => ({} as any)),
       ]);
       setBanners(b);
       setCampaigns(c);
       setCompletions(comps);
+      const order = (cfg?.home_tab_order || ["offerwall", "campaign"])
+        .filter((t): t is CampaignTab => t === "offerwall" || t === "campaign");
+      if (order.length === 2) setTabOrder(order);
+      // Only apply the admin default on first load (don't override user taps).
+      if (!tabPickedRef.current) {
+        const def = cfg?.home_default_tab;
+        if (def === "offerwall" || def === "campaign") setTab(def);
+        else if (order.length) setTab(order[0]);
+      }
     } catch {}
     finally {
       setFirstLoaded(true);
@@ -196,7 +208,7 @@ export default function HomeScreen() {
 
           {/* Tabs */}
           <View style={styles.tabsRow}>
-            {(["offerwall", "campaign"] as CampaignTab[]).map((t) => {
+            {(tabOrder as CampaignTab[]).map((t) => {
               const active = tab === t;
               const count =
                 t === "campaign"
@@ -206,7 +218,7 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   key={t}
                   activeOpacity={0.85}
-                  onPress={() => setTab(t)}
+                  onPress={() => { tabPickedRef.current = true; setTab(t); }}
                   style={[styles.tabBtn, active && styles.tabBtnActive]}
                   testID={`tab-${t}`}
                 >
@@ -301,7 +313,6 @@ export default function HomeScreen() {
                   </View>
                   <View style={styles.campaignReward}>
                     <Text style={styles.campaignInr}>₹{c.reward_inr}</Text>
-                    <Text style={styles.campaignPts}>{c.reward_points} pts</Text>
                   </View>
                   {!disabled && <ChevronRight size={18} color={theme.colors.muted} />}
                 </TouchableOpacity>

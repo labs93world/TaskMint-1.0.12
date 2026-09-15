@@ -87,7 +87,7 @@ export default function DailyChallenge() {
         <Gift size={64} color="#fff" />
         <Text style={styles.heroTitle}>Mystery Box</Text>
         <Text style={styles.heroSub}>Pick one box. Open once per day.</Text>
-        <Text style={styles.heroSub}>Jackpot chance: 1 in 100 = 1000 pts</Text>
+        <Text style={styles.heroSub}>Jackpot Player: 1 in 100 = 50000 pts</Text>
       </View>
 
       {claimed === null ? (
@@ -126,10 +126,6 @@ export default function DailyChallenge() {
       )}
 
       <View style={styles.legend}>
-        <Text style={styles.legendTxt}>• 50% chance — 50 pts</Text>
-        <Text style={styles.legendTxt}>• 40% chance — 150 pts</Text>
-        <Text style={styles.legendTxt}>• 9% chance — 300 pts</Text>
-        <Text style={[styles.legendTxt, { color: theme.colors.primary, fontWeight: "800" }]}>• 1% jackpot — 1000 pts</Text>
       </View>
 
       <NativeAd testID="dc-native-ad" />

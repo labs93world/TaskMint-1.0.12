@@ -58,12 +58,6 @@ export default function TriviaStreak() {
   const router = useRouter();
   const { refreshUser } = useAuth();
   const adCfg = useGameAdConfig("trivia");
-  const [tCfg, setTCfg] = useState({ per: 8, bonus: 5 });
-  useEffect(() => {
-    api<{ trivia_per_correct?: number; trivia_streak_bonus?: number }>("/app-config", { auth: false })
-      .then((c) => setTCfg({ per: Number(c?.trivia_per_correct ?? 8) || 8, bonus: Number(c?.trivia_streak_bonus ?? 5) || 5 }))
-      .catch(() => {});
-  }, []);
   const session = useGameSession(adCfg.chances_per_ad, adCfg.every_n, "tm:game:trivia");
   const [showRewardedAd, setShowRewardedAd] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -190,10 +184,7 @@ export default function TriviaStreak() {
       {phase === "idle" && (
         <View style={styles.center}>
           <Text style={styles.bigTxt}>10 questions. 12s each.</Text>
-          <Text style={styles.subtle}>
-            +{tCfg.per} pts per correct answer  •  +{tCfg.bonus} pts bonus per streak step (2-in-a-row, 3-in-a-row…)
-          </Text>
-          <Text style={[styles.subtle, { marginTop: 6 }]} testID="trivia-chances">
+          <Text style={styles.subtle} testID="trivia-chances">
             Chances left: {session.chancesLeft} / 5
           </Text>
           <TouchableOpacity style={styles.startBtn} onPress={start} testID="trivia-start">

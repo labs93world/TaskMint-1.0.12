@@ -1,16 +1,16 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   KeyboardAvoidingView, Platform, ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import {
   ChevronLeft, Check, Clock, X, AlertCircle,
 } from "lucide-react-native";
 import { theme, pointsToInr, setExchangeRatio } from "../src/lib/theme";
 import { api } from "../src/lib/api";
-import { useAuth } from "../src/context/AuthContext";
+import { useAuth, type AppUser } from "../src/context/AuthContext";
 import BalanceCard from "../src/components/BalanceCard";
 import RewardedAdModal from "../src/components/RewardedAdModal";
 import NativeAd from "../src/components/NativeAd";
@@ -46,12 +46,11 @@ export default function WithdrawScreen() {
   const [history, setHistory] = useState<WD[]>([]);
   const [loading, setLoading] = useState(true);
   const [amounts, setAmounts] = useState<number[]>([100, 10000, 30000, 50000]);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [hasFirstWithdrawal, setHasFirstWithdrawal] = useState(false);
   const [minWd, setMinWd] = useState<number>(10000);
   const [error, setError] = useState<string | null>(null);
   const [showAdAfter, setShowAdAfter] = useState(false);
-  const [mobile1, setMobile1] = useState("");
-  const [mobile2, setMobile2] = useState("");
-  const needsMobile = !!user && !(user as any).mobile_number;
 
   const balance = user?.points ?? 0;
 
@@ -64,16 +63,29 @@ export default function WithdrawScreen() {
 
   const loadSettings = useCallback(async () => {
     try {
-      const s = await api<WSettings>("/withdraw-settings", { auth: false });
-      setAmounts(s.amounts || [100, 10000, 30000, 50000]);
-      if (s.exchange_points_per_inr) setExchangeRatio(s.exchange_points_per_inr);
+      const [freshUser, s] = await Promise.all([
+        api<AppUser>("/auth/me"),
+        api<WSettings>("/withdraw-settings", { auth: false }),
+      ]);
+      const customAmts = freshUser.custom_withdraw_amounts;
+      const nextAmounts = (Array.isArray(customAmts) && customAmts.length ? customAmts : s.amounts) || [100, 10000, 30000, 50000];
+      setAmounts(nextAmounts);
+      setSelectedPts((current) => (current && nextAmounts.includes(current) ? current : null));
+      setHasFirstWithdrawal(!!freshUser.has_first_withdrawal);
+      if (freshUser.custom_exchange_ratio) setExchangeRatio(freshUser.custom_exchange_ratio);
+      else if (s.exchange_points_per_inr) setExchangeRatio(s.exchange_points_per_inr);
       if (typeof s.min_withdrawal === "number") setMinWd(s.min_withdrawal);
-    } catch {}
+    } catch {} finally {
+      setSettingsLoading(false);
+    }
   }, []);
 
-  useEffect(() => { loadHistory(); loadSettings(); }, [loadHistory, loadSettings]);
+  useFocusEffect(useCallback(() => {
+    loadHistory();
+    loadSettings();
+  }, [loadHistory, loadSettings]));
 
-  const visibleAmounts = user?.has_first_withdrawal
+  const visibleAmounts = hasFirstWithdrawal
     ? amounts.filter((p) => p > 100)
     : amounts;
 
@@ -100,21 +112,6 @@ export default function WithdrawScreen() {
     setError(null);
     setBusy(true);
     try {
-      if (needsMobile) {
-        if (!mobile1.trim() || mobile1.trim().length < 10) {
-          setError("Enter a valid mobile number");
-          setBusy(false); return;
-        }
-        if (mobile1.trim() !== mobile2.trim()) {
-          setError("Mobile numbers do not match");
-          setBusy(false); return;
-        }
-        await api("/profile/mobile", {
-          method: "POST",
-          body: { mobile_number: mobile1.trim(), confirm_mobile_number: mobile2.trim() },
-        });
-        await refreshUser();
-      }
       await api("/withdraw", {
         method: "POST",
         body: {
@@ -172,18 +169,22 @@ export default function WithdrawScreen() {
           </View>
 
           <View style={styles.amountChips}>
-            {visibleAmounts.map((p) => (
-              <TouchableOpacity
-                key={p}
-                style={[styles.chip, selectedPts === p && styles.chipActive]}
-                onPress={() => setSelectedPts(p)}
-                testID={`amount-${p}`}
-              >
-                <Text style={[styles.chipText, selectedPts === p && { color: "#fff" }]}>
-                  ₹{Math.round(pointsToInr(p))}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {settingsLoading ? (
+              <ActivityIndicator color={theme.colors.primary} />
+            ) : (
+              visibleAmounts.map((p) => (
+                <TouchableOpacity
+                  key={p}
+                  style={[styles.chip, selectedPts === p && styles.chipActive]}
+                  onPress={() => setSelectedPts(p)}
+                  testID={`amount-${p}`}
+                >
+                  <Text style={[styles.chipText, selectedPts === p && { color: "#fff" }]}>
+                    ₹{Math.round(pointsToInr(p))}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            )}
           </View>
 
           {method === "upi" ? (
@@ -207,18 +208,6 @@ export default function WithdrawScreen() {
                 style={[styles.input, { marginTop: 10 }]}
                 autoCapitalize="characters" testID="bank-ifsc-input" />
             </>
-          )}
-
-          {needsMobile && (
-            <View>
-              <Text style={[styles.sectionLabel, { marginTop: theme.spacing.md }]}>MOBILE NUMBER (one-time)</Text>
-              <TextInput value={mobile1} onChangeText={setMobile1} keyboardType="phone-pad"
-                placeholder="10-digit mobile" placeholderTextColor={theme.colors.muted}
-                maxLength={15} style={[styles.input, { marginTop: 6 }]} testID="wd-mobile1" />
-              <TextInput value={mobile2} onChangeText={setMobile2} keyboardType="phone-pad"
-                placeholder="Re-enter mobile" placeholderTextColor={theme.colors.muted}
-                maxLength={15} style={[styles.input, { marginTop: 10 }]} testID="wd-mobile2" />
-            </View>
           )}
 
           {error && (

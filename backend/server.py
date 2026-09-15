@@ -94,6 +94,7 @@ class Campaign(BaseModel):
     tutorial_video_url: Optional[str] = ""  # YouTube URL shown as embedded tutorial
     rules: Optional[str] = ""  # multi-line rules shown on task detail
     telegram_contact_url: Optional[str] = ""
+    cta_label: Optional[str] = ""
     form_field_1_label: Optional[str] = ""  # empty = field hidden
     form_field_1_placeholder: Optional[str] = ""
     form_field_2_label: Optional[str] = ""
@@ -115,6 +116,7 @@ class CampaignCreate(BaseModel):
     tutorial_video_url: Optional[str] = ""
     rules: Optional[str] = ""
     telegram_contact_url: Optional[str] = ""
+    cta_label: Optional[str] = ""
     form_field_1_label: Optional[str] = ""
     form_field_1_placeholder: Optional[str] = ""
     form_field_2_label: Optional[str] = ""
@@ -303,6 +305,10 @@ class AppMetaSettings(BaseModel):
     # Example: {"/spin": {"enabled": true, "note": "Spin is undergoing improvements"}}
     maintenance: Dict[str, Dict[str, Any]] = {}
 
+    # ----- Home tab (offerwall / campaign) arrangement (admin-editable, item 1) -----
+    home_default_tab: str = "offerwall"                       # which sub-tab opens first
+    home_tab_order: List[str] = ["offerwall", "campaign"]     # left→right order
+
     # ----- Per-game ad configuration (admin-editable, item 1b + 6) -----
     # For each game key: ad_type ("interstitial" | "rewarded"), and `every_n`.
     # For chance-based games (hl/ttt/math/memory/tap/trivia): `chances_per_ad`
@@ -439,6 +445,9 @@ async def get_current_user(request: Request, authorization: Optional[str] = Head
     user.setdefault("referred_by", None)
     user.setdefault("referral_rewards_paid", [])
     user.setdefault("mobile_number", None)
+    # Per-user overrides (admin can set for a specific user; None => use global)
+    user.setdefault("custom_exchange_ratio", None)
+    user.setdefault("custom_withdraw_amounts", None)
     # Wallet split defaults (legacy users predating iter-21)
     user.setdefault("campaign_points", 0)
     user.setdefault("games_task_points", 0)
@@ -1825,7 +1834,7 @@ async def submit_withdraw(payload: WithdrawCreate, user: dict = Depends(get_curr
     # --- Admin-configurable min + exchange ratio + daily cap ---
     meta = await get_app_meta()
     min_points = int(meta.get("min_withdrawal", 10000) or 10000)
-    ratio = int(meta.get("exchange_points_per_inr", 100) or 100)
+    ratio = int(user.get("custom_exchange_ratio") or meta.get("exchange_points_per_inr", 100) or 100)
     if ratio <= 0:
         ratio = 100
     daily_cap = int(meta.get("daily_withdrawal_limit", 2) or 2)
@@ -2188,6 +2197,10 @@ async def admin_update_completion(
         if approved_points is None:
             approved_points = original_points
         approved_points = max(0, min(int(approved_points), original_points))
+        # Persist the actual credited amount so a later Reset can deduct it.
+        await db.campaign_completions.update_one(
+            {"id": completion_id}, {"$set": {"credited_points": approved_points}}
+        )
 
         # 1) Credit the user's wallet with whatever the admin approved (could be 0).
         if approved_points > 0:
@@ -2203,6 +2216,18 @@ async def admin_update_completion(
         # in-app wallet). Use the campaign name as the destination descriptor
         # rather than the user-submitted UPI / holder fields.
         if approved_points < original_points and original_points > 0:
+            target_user = await db.users.find_one(
+                {"user_id": c["user_id"]},
+                {"_id": 0, "custom_exchange_ratio": 1},
+            )
+            meta = await get_app_meta()
+            ratio = int(
+                (target_user or {}).get("custom_exchange_ratio")
+                or meta.get("exchange_points_per_inr", 100)
+                or 100
+            )
+            if ratio <= 0:
+                ratio = 100
             wd = WithdrawRequest(
                 user_id=c["user_id"],
                 user_name=c.get("user_name", ""),
@@ -2210,14 +2235,24 @@ async def admin_update_completion(
                 method="upi",
                 source="campaign",
                 points=original_points,
-                inr_amount=round(original_points / 100.0, 2),
+                inr_amount=round(original_points / float(ratio), 2),
                 upi_id=c.get("campaign_name", ""),
                 status="successful",
                 admin_note=f"Auto-recorded for {c['campaign_name']} approval (paid externally)",
             )
             wd_doc = wd.dict()
             wd_doc["updated_at"] = now_iso()
+            wd_doc["auto_created"] = True
+            wd_doc["completion_id"] = completion_id
             await db.withdrawals.insert_one(wd_doc)
+            # Mirror the withdrawal into the transaction ledger so the Wallet
+            # tab and admin Withdrawals filter show automatic campaign payouts too.
+            txn = Transaction(
+                user_id=c["user_id"], type="withdraw", source="withdraw",
+                category="campaign", points=-original_points,
+                note=f"Auto-recorded for {c['campaign_name']} approval (paid externally)",
+            )
+            await db.transactions.insert_one(txn.dict())
             # Also keep total_withdrawn in sync for the user.
             await db.users.update_one(
                 {"user_id": c["user_id"]},
@@ -2230,17 +2265,30 @@ async def admin_update_completion(
 async def admin_reset_completion(
     completion_id: str, reason: str = "", _: dict = Depends(require_admin)
 ):
-    """Reset a completion so the user can retry. Keeps the record with
-    status='rejected' and admin_note=reason so the user sees why it was reset."""
+    """Reset a completion: delete it so the user can re-submit. If it was
+    approved, deduct the credited reward from the user's wallet. `reason` is
+    logged on the deduction transaction."""
     c = await db.campaign_completions.find_one({"id": completion_id}, {"_id": 0})
     if not c:
         raise HTTPException(status_code=404, detail="Not found")
-    note = reason or "Task reset by admin — please re-submit"
-    await db.campaign_completions.update_one(
-        {"id": completion_id},
-        {"$set": {"status": "rejected", "admin_note": note, "updated_at": now_iso()}},
-    )
-    return {"ok": True, "reason": reason}
+    # If the task was approved, deduct the reward that was credited.
+    if c.get("status") == "approved":
+        credited = int(c.get("credited_points", c.get("reward_points", 0)) or 0)
+        if credited > 0:
+            await db.users.update_one(
+                {"user_id": c["user_id"]},
+                {"$inc": {"points": -credited, "games_task_points": -credited}},
+            )
+            txn = Transaction(
+                user_id=c["user_id"], type="withdraw", source="admin",
+                category="campaign", points=-credited,
+                note=f"Task '{c.get('campaign_name','')}' reset by admin"
+                     + (f" — {reason}" if reason else ""),
+            )
+            await db.transactions.insert_one(txn.dict())
+    # Delete the completion entirely so the user can re-submit.
+    await db.campaign_completions.delete_one({"id": completion_id})
+    return {"ok": True, "reason": reason, "deducted": c.get("status") == "approved"}
 
 
 # ---------- Image upload (base64) ----------
@@ -2278,6 +2326,27 @@ async def admin_user_transactions(user_id: str, category: Optional[str] = None, 
         if not t.get("category"):
             t["category"] = "games_task"
     return items
+
+class UserOverrides(BaseModel):
+    custom_exchange_ratio: Optional[int] = None
+    custom_withdraw_amounts: Optional[List[int]] = None
+
+@api_router.put("/admin/users/{user_id}/overrides")
+async def admin_set_user_overrides(user_id: str, payload: UserOverrides, _: dict = Depends(require_admin)):
+    """Set per-user exchange ratio and/or withdraw amount chips. Send null to
+    clear an override (falls back to the global App Config value)."""
+    u = await db.users.find_one({"user_id": user_id}, {"_id": 0, "user_id": 1})
+    if not u:
+        raise HTTPException(status_code=404, detail="User not found")
+    ratio = payload.custom_exchange_ratio
+    amounts = payload.custom_withdraw_amounts
+    upd = {
+        "custom_exchange_ratio": int(ratio) if ratio else None,
+        "custom_withdraw_amounts": [int(x) for x in amounts if int(x) > 0] if amounts else None,
+    }
+    await db.users.update_one({"user_id": user_id}, {"$set": upd})
+    return {"ok": True, **upd}
+
 
 @api_router.delete("/admin/users/{user_id}")
 async def admin_delete_user(user_id: str, admin: dict = Depends(require_admin)):

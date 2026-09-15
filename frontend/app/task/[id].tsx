@@ -14,7 +14,7 @@ import TutorialVideo from "../../src/components/TutorialVideo";
 type Campaign = {
   id: string; name: string; note: string; logo_url: string;
   link_url?: string; tutorial_video_url?: string;
-  rules?: string; telegram_contact_url?: string;
+  rules?: string; telegram_contact_url?: string; cta_label?: string;
   form_field_1_label?: string; form_field_1_placeholder?: string;
   form_field_2_label?: string; form_field_2_placeholder?: string;
   category?: string; difficulty?: string;
@@ -194,7 +194,7 @@ export default function TaskDetail() {
               testID="contact-telegram"
             >
               <MessageCircle size={18} color="#0088cc" />
-              <Text style={[styles.outlineBtnText, { color: "#0088cc" }]}>Contact on Telegram</Text>
+              <Text style={[styles.outlineBtnText, { color: "#0088cc" }]}>{c.cta_label?.trim() || "Contact on Telegram"}</Text>
             </TouchableOpacity>
           )}
 

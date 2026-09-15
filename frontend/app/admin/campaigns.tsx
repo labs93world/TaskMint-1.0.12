@@ -13,7 +13,7 @@ import ImagePickerField from "../../src/components/ImagePickerField";
 
 type Cmp = {
   id: string; name: string; note: string; logo_url: string; link_url?: string;
-  tutorial_video_url?: string; rules?: string; telegram_contact_url?: string;
+  tutorial_video_url?: string; rules?: string; telegram_contact_url?: string; cta_label?: string;
   form_field_1_label?: string; form_field_1_placeholder?: string;
   form_field_2_label?: string; form_field_2_placeholder?: string;
   category?: string; difficulty?: string;
@@ -38,6 +38,7 @@ export default function AdminCampaigns() {
   const [difficulty, setDifficulty] = useState(DIFFICULTIES[0]);
   const [rules, setRules] = useState("");
   const [tgContact, setTgContact] = useState("");
+  const [ctaLabel, setCtaLabel] = useState("");
   const [f1Label, setF1Label] = useState("");
   const [f1Ph, setF1Ph] = useState("");
   const [f2Label, setF2Label] = useState("");
@@ -53,7 +54,7 @@ export default function AdminCampaigns() {
     setEditId(null);
     setName(""); setNote(""); setLogo(""); setLink(""); setTutorialUrl(""); setPts("");
     setCategory(CATEGORIES[2]); setDifficulty(DIFFICULTIES[0]);
-    setRules(""); setTgContact("");
+    setRules(""); setTgContact(""); setCtaLabel("");
     setF1Label(""); setF1Ph(""); setF2Label(""); setF2Ph("");
   };
 
@@ -67,7 +68,7 @@ export default function AdminCampaigns() {
         name, note, logo_url: logo, link_url: link,
         tutorial_video_url: tutorialUrl,
         category, difficulty,
-        rules, telegram_contact_url: tgContact,
+        rules, telegram_contact_url: tgContact, cta_label: ctaLabel,
         form_field_1_label: f1Label, form_field_1_placeholder: f1Ph,
         form_field_2_label: f2Label, form_field_2_placeholder: f2Ph,
         reward_points: parseInt(pts, 10),
@@ -101,6 +102,7 @@ export default function AdminCampaigns() {
     setDifficulty(c.difficulty || DIFFICULTIES[0]);
     setRules(c.rules || "");
     setTgContact(c.telegram_contact_url || "");
+    setCtaLabel(c.cta_label || "");
     setF1Label(c.form_field_1_label || ""); setF1Ph(c.form_field_1_placeholder || "");
     setF2Label(c.form_field_2_label || ""); setF2Ph(c.form_field_2_placeholder || "");
   };
@@ -112,7 +114,7 @@ export default function AdminCampaigns() {
         body: {
           name: c.name, note: c.note, logo_url: c.logo_url, link_url: c.link_url || "",
           tutorial_video_url: c.tutorial_video_url || "",
-          rules: c.rules || "", telegram_contact_url: c.telegram_contact_url || "",
+          rules: c.rules || "", telegram_contact_url: c.telegram_contact_url || "", cta_label: c.cta_label || "",
           form_field_1_label: c.form_field_1_label || "", form_field_1_placeholder: c.form_field_1_placeholder || "",
           form_field_2_label: c.form_field_2_label || "", form_field_2_placeholder: c.form_field_2_placeholder || "",
           category: c.category || CATEGORIES[2],
@@ -171,6 +173,10 @@ export default function AdminCampaigns() {
               placeholder="Telegram contact URL (optional)"
               placeholderTextColor={theme.colors.muted} style={styles.input}
               autoCapitalize="none" testID="cmp-tg" />
+            <TextInput value={ctaLabel} onChangeText={setCtaLabel}
+              placeholder='Button label (default "Contact on Telegram")'
+              placeholderTextColor={theme.colors.muted} style={styles.input}
+              testID="cmp-cta" />
 
             <Text style={styles.fieldLabel}>Proof field 1 (leave empty to hide)</Text>
             <TextInput value={f1Label} onChangeText={setF1Label}

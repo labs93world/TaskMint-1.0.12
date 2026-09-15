@@ -1,0 +1,38 @@
+{
+  "summary": "Verified both bugfixes end-to-end. Backend: 12/12 pytest passed (8/8 regression test_iteration34_taskmint_batch.py + 4/4 new test_iteration35_bugfix_verify.py covering partial-approval auto withdrawal+ledger, full-approval no-auto-withdrawal regression, zero-approval auto withdrawal, /auth/me override exposure). Frontend UI (mobile viewport, real fresh device user): BUGFIX 1 confirmed — after admin override (ratio=500, chips=[100,500,1000]) applied mid-session, navigating Wallet→Withdraw without reload shows override chips ₹0/₹1/₹2 with no stale global chips (₹500/₹1000/₹2000); after has_first_withdrawal=true the ₹0/100pt chip is hidden while ₹1/₹2 remain. BUGFIX 2 confirmed — partial approval 400/1000 created a SUCCESSFUL ₹2 source=campaign row in Withdrawal History and a 'Withdrawal -1000 pts' ledger row plus '+400 pts' campaign credit in Wallet Transaction History (verified in UI screenshots). Expo web preview loads clean (no blank screen, no console errors). Deprecated package scan: no expo-av/expo-barcode-scanner/expo-background-fetch found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "expo-web runtime", "issue": "Minor RN-web deprecation warning in expo logs: 'props.pointerEvents is deprecated. Use style.pointerEvents' (originates from a library, non-blocking, app renders and functions correctly)."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration35_bugfix_verify.py",
+    "/app/test_reports/pytest/iter35_bugfix.xml",
+    "/app/test_reports/pytest/iter35_regression.xml",
+    "/app/test_reports/screenshots_i35/02_override_chips.png",
+    "/app/test_reports/screenshots_i35/03_withdraw_history.png",
+    "/app/test_reports/screenshots_i35/04_wallet_txns.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "withdraw.tsx initial useState amounts=[100,10000,30000,50000] briefly renders default chips (₹1 with default ratio) until the focus-effect /auth/me + /withdraw-settings fetch completes — purely cosmetic flash, not a functional bug; consider hiding chips until settings load if polish is desired.",
+    "server.py partial-approval path correctly uses per-user custom_exchange_ratio with fallback to global meta ratio and ratio<=0 guard; auto withdrawal is tagged completion_id/auto_created and mirrored to transactions with source=withdraw/category=campaign; has_first_withdrawal set to True — all verified.",
+    "Full-approval path correctly skips auto withdrawal creation (regression verified via API)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration35_bugfix_verify.py"
+  ],
+  "success_rate": {"backend": "100% (12/12)", "frontend": "100% (all UI steps passed)"},
+  "seed_data_creation": "Fresh device user user_9a89553690ff created via POST /api/auth/device, used for UI flow, then deleted via admin DELETE /api/admin/users/{id} (cascade verified 200). Test campaign TEST_I35_UI_Campaign created and deleted. Admin session via /api/auth/admin-login with provided creds.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Both reported bugs are fixed and verified. Test fixture pattern: inject tm_session_token into localStorage via add_init_script to impersonate a device user on web preview; run admin/user API mutations mid-session via page.evaluate fetch with credentials:'omit' (urllib/requests from the Playwright sandbox got 403 through the preview proxy — use bash or in-browser fetch instead). When asserting withdraw chips, wait on a chip UNIQUE to the override set (e.g. amount-500) because amount-100 also exists in the initial default render and causes a race.",
+  "rca_of_issue": "Bug 1 root cause: Withdraw screen read custom_withdraw_amounts/custom_exchange_ratio from stale AuthContext user state; fix fetches fresh /auth/me on every useFocusEffect and applies overrides before falling back to global settings — verified working. Bug 2 root cause: partial/zero campaign approval created no withdrawal record and no ledger mirror; fix inserts a successful source=campaign withdrawal (original points, per-user ratio INR) plus a source=withdraw/category=campaign negative transaction — verified in API and UI."
+}

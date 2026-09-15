@@ -217,6 +217,24 @@ backend:
         agent: "main"
         comment: "Added business_contact migration in seed_initial_data; /api/links now returns it (verified)."
 
+  - task: "Automatic withdrawal history on partial campaign approval"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "user"
+        comment: "User reported: automatic withdrawal history creation also needs fixing."
+      - working: "NA"
+        agent: "main"
+        comment: "Partial approval now creates the successful withdrawal using the user's custom exchange ratio when present, tags it with completion_id/auto_created, and mirrors it into the transaction ledger so Wallet and admin Withdrawals filters display it."
+      - working: true
+        agent: "testing"
+        comment: "12/12 backend tests passed. Partial approval (400/1000, ratio=500) creates one successful campaign withdrawal for 1000 pts / ₹2 and one source=withdraw/category=campaign/-1000 ledger row; zero approval creates the row; full approval correctly creates no auto withdrawal."
+
 frontend:
   - task: "Profile - Quick Access text rows with Contact for Business"
     implemented: true
@@ -334,10 +352,28 @@ frontend:
         agent: "main"
         comment: "Trash button in user detail modal calls DELETE /api/admin/users/{user_id} after confirm."
 
+  - task: "Withdraw amount chips reflect per-user overrides"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/withdraw.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "user"
+        comment: "User reported: amount chips are not visible after an admin per-user override."
+      - working: "NA"
+        agent: "main"
+        comment: "Withdraw screen now fetches /auth/me on every focus and applies fresh custom_withdraw_amounts/custom_exchange_ratio instead of relying on stale AuthContext state; first-withdrawal chip filtering also uses the fresh record."
+      - working: true
+        agent: "testing"
+        comment: "PASS on mobile viewport with a real fresh device user. Override ratio=500 and chips=[100,500,1000] applied mid-session; Wallet -> Withdraw shows override chips ₹0/₹1/₹2 without stale global chips. With has_first_withdrawal=true, the 100-point first chip hides while 500/1000 remain."
+
 metadata:
   created_by: "main_agent"
   version: "1.1"
-  test_sequence: 3
+  test_sequence: 4
   run_ui: false
 
 test_plan:
@@ -405,6 +441,19 @@ agent_communication:
           spins/scratches, plus updates the in-memory user dict (line 254).
       Watch & Earn endpoint is now fully working. No remaining backend issues from current_focus.
 
+  - agent: "main"
+    message: |
+      User reported two final blockers: per-user withdraw amount chips not visible after override, and automatic withdrawal history creation. Fixes implemented:
+      (1) Withdraw screen now loads a fresh /auth/me on every focus and uses fresh custom_withdraw_amounts/custom_exchange_ratio plus fresh has_first_withdrawal filtering.
+      (2) Partial campaign approval now auto-creates the successful withdrawal using the user's custom exchange ratio, tags the record with completion_id/auto_created, and inserts a matching source=withdraw transaction so Wallet and admin Withdrawals filters show it.
+      Backend targeted suite /app/backend/tests/test_iteration34_taskmint_batch.py: 8/8 PASS. Please verify backend flow plus frontend UI end-to-end.
+
+  - agent: "testing"
+    message: |
+      Iteration 34 verification complete — BOTH user-reported blockers PASS.
+      Backend: 12/12 pytest passed (8/8 iteration34 regression + 4/4 iteration35 bugfix tests). Partial approval creates the auto withdrawal and ledger row with per-user ratio; zero approval works; full approval remains no-auto-withdrawal.
+      Frontend: override chips applied mid-session are visible with custom ratio labels; first-withdrawal chip filtering works; Withdrawal History and Wallet Transaction History both show the automatic payout. Expo preview smoke PASS. Report: /app/test_reports/iteration_34.json.
+
 ## Iteration 27 (fork agent) — Comprehensive backend regression + CRITICAL fix
 - Ran full backend regression (42/42 pass) across auth, tasks/games earn+claim, referrals, wallet/withdraw, campaigns, admin.
 - CRITICAL BUG FIXED in server.py admin_update_withdraw (~line 1927):
@@ -451,3 +500,12 @@ Verified: lint clean on all changed files; memory-match smoke shows rewarded gat
 - Bug1 (gate always showed on web): installed version resolved to "0.0.0" because Constants.expoConfig.version empty on web. Fix in app/_layout.tsx UpdateGateHost: `installed = Application.nativeApplicationVersion || appJson.expo.version || Constants.expoConfig?.version || "0.0.0"` (import ../app.json). Verified via screenshot: latest=installed=1.0.1 -> NO gate (welcome screen shows).
 - Bug2 (admin escape from gate): UpdateGate.submitAdmin now router.push("/admin") (mirrors working Profile flow) instead of "/admin/settings" which bounced.
 - Native build reads real version via expo-application; force ON => hard block (no Skip), force OFF+outdated => dismissible.
+
+## Big batch (fork agent) — Home/Earn/Wallet/Admin
+Backend: added Campaign.cta_label; AppMetaSettings home_default_tab/home_tab_order; user custom_exchange_ratio/custom_withdraw_amounts (setdefault); /withdraw uses per-user ratio; admin_update_completion persists credited_points; reset endpoint now DELETES completion + deducts if approved; new PUT /admin/users/{id}/overrides.
+Frontend:
+- Earn labels removed/reformatted (daily/HL/memory/math/trivia); tap-coins vertical list + watch 2-line, all from admin config; daily jackpot text hard-set 50000; NativeAd card removed (expands).
+- Home: ₹-only rewards; admin-controlled tab order + default (reads /app-config).
+- Task detail: CTA button label from campaign.cta_label.
+- Admin campaigns: CTA label input. Admin completions: Reset (with reason) for approved/rejected. Admin settings: Home tabs section. Admin users: per-user override (ratio + chips).
+- Wallet: mandatory mobile popup on Withdraw (if no mobile); withdraw screen mobile field removed; withdraw uses per-user chips/ratio.

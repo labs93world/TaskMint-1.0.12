@@ -16,6 +16,8 @@ type Config = {
   min_withdrawal_campaign: number;
   min_withdrawal_games_task: number;
   daily_withdrawal_limit: number;
+  home_default_tab: string;
+  home_tab_order: string[];
   spin_min: number; spin_max: number;
   scratch_min: number; scratch_max: number;
   visit_min: number; visit_max: number;
@@ -230,6 +232,29 @@ export default function AdminSettings() {
                 </TouchableOpacity>
               </View>
             )}
+          </Section>
+
+          <Section title="Home tabs (Offerwall / Campaigns)">
+            <Row label="Default tab">
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {(["offerwall", "campaign"] as const).map((t) => (
+                  <TouchableOpacity key={t} onPress={() => set({ home_default_tab: t })}
+                    style={[styles.modeChip, config.home_default_tab === t && styles.modeChipActive]}
+                    testID={`cfg-hometab-${t}`}>
+                    <Text style={[styles.modeChipTxt, config.home_default_tab === t && styles.modeChipTxtActive]}>
+                      {t === "offerwall" ? "Offerwall" : "Campaigns"}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </Row>
+            <Row label={`Order: ${(config.home_tab_order || ["offerwall", "campaign"]).map((x) => x === "offerwall" ? "Offerwall" : "Campaigns").join(" → ")}`}>
+              <TouchableOpacity
+                onPress={() => set({ home_tab_order: [...(config.home_tab_order || ["offerwall", "campaign"])].reverse() })}
+                style={[styles.modeChip, styles.modeChipActive]} testID="cfg-hometab-swap">
+                <Text style={[styles.modeChipTxt, styles.modeChipTxtActive]}>Swap</Text>
+              </TouchableOpacity>
+            </Row>
           </Section>
 
           {/* Maintenance section moved → /admin/maintenance */}

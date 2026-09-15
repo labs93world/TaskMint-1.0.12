@@ -57,6 +57,17 @@ export default function TapRush() {
   const { width } = useWindowDimensions();
   const { refreshUser } = useAuth();
   const adCfg = useGameAdConfig("tap");
+  const [tapCfg, setTapCfg] = useState({ diamond: 3, gold: 2, silver: 1, bomb: 5 });
+  useEffect(() => {
+    api<{ tap_per_diamond?: number; tap_per_gold?: number; tap_per_silver?: number; tap_bomb_penalty?: number }>("/app-config", { auth: false })
+      .then((c) => setTapCfg({
+        diamond: Number(c?.tap_per_diamond ?? 3) || 3,
+        gold: Number(c?.tap_per_gold ?? 2) || 2,
+        silver: Number(c?.tap_per_silver ?? 1) || 1,
+        bomb: Number(c?.tap_bomb_penalty ?? 5) || 5,
+      }))
+      .catch(() => {});
+  }, []);
   const session = useGameSession(adCfg.chances_per_ad, adCfg.every_n, "tm:game:tap");
   const [showRewardedAd, setShowRewardedAd] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -193,7 +204,7 @@ export default function TapRush() {
     setPhase("playing");
   };
 
-  const score = diamond * 3 + gold * 2 + silver - bombs * 5;
+  const score = diamond * tapCfg.diamond + gold * tapCfg.gold + silver * tapCfg.silver - bombs * tapCfg.bomb;
 
   if (maint.enabled) return <MaintenanceCard title="Tap-the-Coin Rush" note={maint.note} />;
 
@@ -210,12 +221,12 @@ export default function TapRush() {
       {phase === "idle" && (
         <View style={styles.center}>
           <Text style={styles.bigTxt}>30 seconds. Tap fast!</Text>
-          <Text style={styles.subtle}>
-            💎🎁 Diamond +3 (rare)  •  🪙 Gold +2 (rare)
-          </Text>
-          <Text style={styles.subtle}>
-            🟤🔵🟣🟢🟠🟡 Silver +1  •  💣⚫🌚☣️ Bomb −5
-          </Text>
+          <View style={styles.tapLegend}>
+            <Text style={styles.tapLegendRow}>💎🎁 Diamonds (rare) +{tapCfg.diamond}pts</Text>
+            <Text style={styles.tapLegendRow}>🪙 Gold (rare) +{tapCfg.gold}pts</Text>
+            <Text style={styles.tapLegendRow}>🟤🔵🟣🟢🟠🟡 Silver +{tapCfg.silver}pts</Text>
+            <Text style={styles.tapLegendRow}>💣⚫🌚☣️ Bomb -{tapCfg.bomb}pts</Text>
+          </View>
           <Text style={[styles.subtle, { marginTop: 6 }]} testID="tap-chances">
             Chances left: {session.chancesLeft} / 5
           </Text>
@@ -333,6 +344,8 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: theme.spacing.lg },
   bigTxt: { fontSize: 22, fontWeight: "800", color: theme.colors.text, marginVertical: 4, textAlign: "center" },
   subtle: { color: theme.colors.muted, fontSize: 13, marginTop: 10, textAlign: "center" },
+  tapLegend: { marginTop: 14, gap: 8, alignSelf: "stretch", paddingHorizontal: 24 },
+  tapLegendRow: { color: theme.colors.text, fontSize: 15, fontWeight: "700" },
   startBtn: { marginTop: 28, backgroundColor: theme.colors.primary, paddingHorizontal: 36, paddingVertical: 16, borderRadius: theme.radii.pill },
   startBtnTxt: { color: "#fff", fontWeight: "800", fontSize: 16 },
   playArea: { flex: 1, paddingTop: 4 },

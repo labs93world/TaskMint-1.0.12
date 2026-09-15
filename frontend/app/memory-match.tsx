@@ -31,12 +31,6 @@ export default function MemoryMatch() {
   const router = useRouter();
   const { refreshUser } = useAuth();
   const adCfg = useGameAdConfig("memory");
-  const [memReward, setMemReward] = useState<number>(200);
-  useEffect(() => {
-    api<{ memory_completion?: number }>("/app-config", { auth: false })
-      .then((c) => setMemReward(Number(c?.memory_completion ?? 200) || 200))
-      .catch(() => {});
-  }, []);
   const session = useGameSession(adCfg.chances_per_ad, adCfg.every_n, "tm:game:memory");
   const [showRewardedAd, setShowRewardedAd] = useState(false);
   const [cards, setCards] = useState<Card[]>([]);
@@ -169,7 +163,6 @@ export default function MemoryMatch() {
             : (gameOver ? "Play Again" : "Restart")}
         </Text>
       </TouchableOpacity>
-      <Text style={styles.hint}>Reward: {memReward} pts per completion</Text>
 
       <RewardedAdModal
         visible={showRewardedAd}

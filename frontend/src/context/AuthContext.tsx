@@ -22,6 +22,8 @@ export type AppUser = {
   pending_spin_reward?: number;
   pending_scratch_reward?: number;
   has_first_withdrawal: boolean;
+  custom_exchange_ratio?: number | null;
+  custom_withdraw_amounts?: number[] | null;
   is_admin: boolean;
   watch_cycle_started_at?: string;
   watch_cycle_used?: number;

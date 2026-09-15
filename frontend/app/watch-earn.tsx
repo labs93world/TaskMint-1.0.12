@@ -48,6 +48,12 @@ export default function WatchEarn() {
   const maint = useMaintenance("/watch-earn");
   const router = useRouter();
   const { user, refreshUser } = useAuth();
+  const [watchCfg, setWatchCfg] = useState({ min: 50, max: 100 });
+  useEffect(() => {
+    api<{ watch_min?: number; watch_max?: number }>("/app-config", { auth: false })
+      .then((c) => setWatchCfg({ min: Number(c?.watch_min ?? 50) || 50, max: Number(c?.watch_max ?? 100) || 100 }))
+      .catch(() => {});
+  }, []);
   const [adVisible, setAdVisible] = useState(false);
   const [crediting, setCrediting] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -206,7 +212,8 @@ export default function WatchEarn() {
           <View style={styles.heroIcon}><PlayCircle size={28} color="#fff" /></View>
           <View style={{ flex: 1 }}>
             <Text style={styles.heroTitle}>Watch & Earn</Text>
-            <Text style={styles.heroSub}>50-100 pts per video • {CYCLE_LIMIT} watches every {CYCLE_HOURS}h</Text>
+            <Text style={styles.heroSub}>{watchCfg.min}-{watchCfg.max} pts per video</Text>
+            <Text style={styles.heroSub}>{CYCLE_LIMIT} watches every {CYCLE_HOURS}h</Text>
           </View>
           <View style={styles.heroBadge}>
             <Coins size={14} color="#fff" />
@@ -262,7 +269,7 @@ export default function WatchEarn() {
             <View style={styles.videoMetaRow}>
               <View style={styles.rewardPill}>
                 <Coins size={11} color={theme.colors.success} />
-                <Text style={styles.rewardPillTxt}>+50-100 pts</Text>
+                <Text style={styles.rewardPillTxt}>+{watchCfg.min}-{watchCfg.max} pts</Text>
               </View>
               {nextTimerActive && (
                 <View style={styles.lockedPill}>

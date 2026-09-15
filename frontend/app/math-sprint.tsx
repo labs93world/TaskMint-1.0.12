@@ -148,10 +148,7 @@ export default function MathSprint() {
       {phase === "idle" && (
         <View style={styles.center}>
           <Text style={styles.bigTxt}>20 seconds. 20 questions.</Text>
-          <Text style={styles.subtle}>
-            10 correct → 150 pts • 8 → 100 pts • 6 → 50 pts • 4 → 30 pts
-          </Text>
-          <Text style={[styles.subtle, { marginTop: 6 }]} testID="math-chances">
+          <Text style={styles.subtle} testID="math-chances">
             Chances left: {session.chancesLeft} / 10
           </Text>
           <TouchableOpacity style={styles.startBtn} onPress={start} testID="math-start">

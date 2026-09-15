@@ -245,9 +245,6 @@ export default function HigherLower() {
           </TouchableOpacity>
         )}
 
-        <Text style={styles.hint}>
-          3 correct → {rewardCfg.r3} pts • 5 → {rewardCfg.r5} pts • 7 → {rewardCfg.r7} pts • One wrong ends the round.
-        </Text>
       </View>
 
       <RewardedAdModal

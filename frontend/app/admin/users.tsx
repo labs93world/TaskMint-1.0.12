@@ -94,6 +94,9 @@ export default function AdminUsers() {
   const [reason, setReason] = useState("");
   const [adjustSource, setAdjustSource] = useState<"games_task" | "campaign">("games_task");
   const [busy, setBusy] = useState(false);
+  const [ovRatio, setOvRatio] = useState("");
+  const [ovChips, setOvChips] = useState("");
+  const [savingOv, setSavingOv] = useState(false);
 
   const [drill, setDrill] = useState<DrillKind>(null);
   const [txns, setTxns] = useState<Txn[]>([]);
@@ -118,6 +121,37 @@ export default function AdminUsers() {
   useEffect(() => { load(); }, [load]);
 
   const search = () => load(q);
+
+  useEffect(() => {
+    if (selected) {
+      const r = (selected as any).custom_exchange_ratio;
+      const a = (selected as any).custom_withdraw_amounts;
+      setOvRatio(r ? String(r) : "");
+      setOvChips(Array.isArray(a) ? a.join(", ") : "");
+    }
+  }, [selected]);
+
+  const saveOverrides = async () => {
+    if (!selected) return;
+    setSavingOv(true);
+    try {
+      const ratio = ovRatio.trim() ? parseInt(ovRatio.trim(), 10) : null;
+      const chips = ovChips.trim()
+        ? ovChips.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n) && n > 0)
+        : null;
+      await api(`/admin/users/${selected.user_id}/overrides`, {
+        method: "PUT",
+        body: { custom_exchange_ratio: ratio, custom_withdraw_amounts: chips },
+      });
+      toast.success("Overrides saved", { description: "Applies only to this user." });
+      setSelected({ ...(selected as any), custom_exchange_ratio: ratio, custom_withdraw_amounts: chips });
+      load(q);
+    } catch (e: any) {
+      toast.error("Failed", { description: e?.message });
+    } finally {
+      setSavingOv(false);
+    }
+  };
 
   const adjust = async (sign: 1 | -1) => {
     if (!selected) return;
@@ -364,6 +398,27 @@ export default function AdminUsers() {
                   <Text style={styles.btnText}>Add</Text>
                 </TouchableOpacity>
               </View>
+
+              <Text style={styles.sectionTitle}>Per-user overrides</Text>
+              <Text style={{ color: theme.colors.muted, fontSize: 12, marginBottom: 6 }}>
+                Leave blank to use the global App Config.
+              </Text>
+              <TextInput
+                value={ovRatio} onChangeText={setOvRatio} keyboardType="number-pad"
+                placeholder="Exchange ratio (points = ₹1)"
+                placeholderTextColor={theme.colors.muted} style={styles.input} testID="ov-ratio"
+              />
+              <TextInput
+                value={ovChips} onChangeText={setOvChips}
+                placeholder="Withdraw chips, comma-separated (e.g. 100, 10000, 30000)"
+                placeholderTextColor={theme.colors.muted} style={styles.input} testID="ov-chips"
+              />
+              <TouchableOpacity
+                style={[styles.btn, { backgroundColor: theme.colors.primary, marginTop: 8 }]}
+                disabled={savingOv} onPress={saveOverrides} testID="save-overrides"
+              >
+                <Text style={styles.btnText}>{savingOv ? "Saving…" : "Save overrides"}</Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.deleteBtn}
