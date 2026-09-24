@@ -367,6 +367,24 @@ frontend:
         agent: "testing"
         comment: "PASS on mobile viewport with a real fresh device user. Override ratio=500 and chips=[100,500,1000] applied mid-session; Wallet -> Withdraw shows override chips ₹0/₹1/₹2 without stale global chips. With has_first_withdrawal=true, the 100-point first chip hides while 500/1000 remain."
 
+  - task: "Global NativeAd expands without overlap"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/NativeAd.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "user"
+        comment: "User supplied Daily Challenge screenshot showing the native ad clipped/overlapped and reported native ads invisible globally; requested that ads expand vertically/horizontally into blank space."
+      - working: "NA"
+        agent: "main"
+        comment: "Shared native/web ad components now have flexible host/card layout, minimum usable height, horizontal padding, safe-area bottom spacing, and overflow clipping. Bottom game ad wrappers now flex/stretch so the ad can consume remaining space. Daily Challenge became scrollable and the empty spacer was removed; Visit & Earn empty state now also renders an ad."
+      - working: true
+        agent: "testing"
+        comment: "Iteration 37 retest PASS. In the exact unclaimed 4-box Daily Challenge state, dc-native-ad is fully visible at 390x844 (bottom exactly viewport height), inner card bounded x=24/w=342, no horizontal overflow or console errors. Tic-Tac-Toe and Memory Match regressions PASS; changed files lint clean."
+
 metadata:
   created_by: "main_agent"
   version: "1.1"
@@ -446,6 +464,14 @@ agent_communication:
     message: |
       User correction received after iteration 34: campaign approval must NEVER create automatic withdrawal history. Removed the auto withdrawal and ledger creation from the approval endpoint for full, partial, and zero-point approvals. Updated both targeted suites accordingly; 12/12 PASS.
       The override-chip fix remains in place and verified: Withdraw fetches fresh /auth/me on focus and applies custom chips/ratio.
+
+  - agent: "main"
+    message: |
+      User reported global NativeAd clipping/invisibility with a Daily Challenge screenshot and requested expansion into blank space. Updated shared NativeAd native + web components to use a flexible host/card, minimum height, horizontal padding, safe-area-aware bottom spacing, and overflow clipping; changed six game ad wrappers to flex/stretch. Daily Challenge smoke PASS with host bounds x=0,width=390,height=464 and no viewport overflow. Please verify representative bottom-ad and in-card placements across screens.
+
+  - agent: "testing"
+    message: |
+      Iteration 37 NativeAd retest PASS. Exact prior failure fixed: authenticated Daily Challenge with all four boxes shows dc-native-ad fully visible at 390x844 (host bottom=844; inner card x=24,w=342,bottom=828), no horizontal overflow and zero console errors. Tic-Tac-Toe and Memory Match regressions PASS. Main agent additionally rendered NativeAd in the Visit & Earn empty state and fixed the two pre-existing unescaped-apostrophe lint errors; final lint on all touched files is clean. Report: /app/test_reports/iteration_37.json.
 
 ## Iteration 27 (fork agent) — Comprehensive backend regression + CRITICAL fix
 - Ran full backend regression (42/42 pass) across auth, tasks/games earn+claim, referrals, wallet/withdraw, campaigns, admin.

@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.bg },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: theme.spacing.md },
   title: { fontSize: 18, fontWeight: "800", color: theme.colors.text },
-  adWrap: { paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.md },
+  adWrap: { flex: 1, alignSelf: "stretch" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: theme.spacing.lg },
   bigTxt: { fontSize: 22, fontWeight: "800", color: theme.colors.text, marginVertical: 4, textAlign: "center" },
   subtle: { color: theme.colors.muted, fontSize: 13, marginTop: 10, textAlign: "center" },

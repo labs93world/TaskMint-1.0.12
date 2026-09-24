@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Platform, View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../lib/theme";
 import { getAdUnitId } from "../lib/adConfig";
 
@@ -9,6 +10,7 @@ let NativeAdView: any = null;
 let TestIds: any = null;
 try {
   if (Platform.OS !== "web") {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require("react-native-google-mobile-ads");
     NativeAdClass = mod.NativeAd;
     NativeAdView = mod.NativeAdView;
@@ -23,8 +25,10 @@ try {
  * placeholder on web/Expo Go or if the ad fails to load.
  */
 export default function NativeAd({ testID = "native-ad" }: { testID?: string }) {
+  const insets = useSafeAreaInsets();
   const [ad, setAd] = useState<any>(null);
   const [failed, setFailed] = useState(false);
+  const bottomSpace = theme.spacing.md + insets.bottom;
 
   useEffect(() => {
     if (!NativeAdClass) return;
@@ -50,67 +54,81 @@ export default function NativeAd({ testID = "native-ad" }: { testID?: string }) 
 
   if (!NativeAdClass || failed || !ad) {
     return (
-      <View style={styles.wrap} testID={testID}>
-        <Text style={styles.label}>SPONSORED</Text>
-        <Text style={styles.title}>TaskMint partners</Text>
-        <Text style={styles.sub}>Support us by checking back later</Text>
+      <View style={[styles.host, { paddingBottom: bottomSpace }]} testID={testID}>
+        <View style={styles.card}>
+          <Text style={styles.label}>SPONSORED</Text>
+          <Text style={styles.title}>TaskMint partners</Text>
+          <Text style={styles.sub}>Support us by checking back later</Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <NativeAdView nativeAd={ad} style={styles.native} testID={testID}>
-      <View style={styles.card}>
-        <View style={styles.headerRow}>
-          {ad.icon?.url ? (
-            <Image source={{ uri: ad.icon.url }} style={styles.icon} />
-          ) : (
-            <View style={[styles.icon, styles.iconFallback]} />
-          )}
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.label}>SPONSORED</Text>
-            {!!ad.headline && (
-              <Text style={styles.title} numberOfLines={1}>{ad.headline}</Text>
+    <View style={[styles.host, { paddingBottom: bottomSpace }]} testID={testID}>
+      <NativeAdView nativeAd={ad} style={styles.native}>
+        <View style={styles.card}>
+          <View style={styles.headerRow}>
+            {ad.icon?.url ? (
+              <Image source={{ uri: ad.icon.url }} style={styles.icon} />
+            ) : (
+              <View style={[styles.icon, styles.iconFallback]} />
             )}
-            {!!ad.advertiser && (
-              <Text style={styles.sub} numberOfLines={1}>{ad.advertiser}</Text>
-            )}
+            <View style={styles.adTextWrap}>
+              <Text style={styles.label}>SPONSORED</Text>
+              {!!ad.headline && (
+                <Text style={styles.title} numberOfLines={2}>{ad.headline}</Text>
+              )}
+              {!!ad.advertiser && (
+                <Text style={styles.sub} numberOfLines={1}>{ad.advertiser}</Text>
+              )}
+            </View>
           </View>
+          {!!ad.body && (
+            <Text style={styles.body} numberOfLines={3}>{ad.body}</Text>
+          )}
+          {!!ad.callToAction && (
+            <TouchableOpacity style={styles.cta} activeOpacity={0.85}>
+              <Text style={styles.ctaText}>{ad.callToAction}</Text>
+            </TouchableOpacity>
+          )}
         </View>
-        {!!ad.body && (
-          <Text style={styles.body} numberOfLines={2}>{ad.body}</Text>
-        )}
-        {!!ad.callToAction && (
-          <TouchableOpacity style={styles.cta} activeOpacity={0.85}>
-            <Text style={styles.ctaText}>{ad.callToAction}</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </NativeAdView>
+      </NativeAdView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    flex: 1,
+  host: {
+    flexGrow: 1,
+    flexShrink: 1,
     alignSelf: "stretch",
     width: "100%",
-    minHeight: 200,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
+    minHeight: 210,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.sm,
   },
   native: {
     flex: 1,
     alignSelf: "stretch",
     width: "100%",
+    minHeight: 178,
   },
   card: {
     flex: 1,
+    width: "100%",
+    minHeight: 178,
     justifyContent: "center",
     gap: 10,
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.xl,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    overflow: "hidden",
   },
-  headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 12, width: "100%" },
+  adTextWrap: { flex: 1, minWidth: 0 },
   icon: { width: 48, height: 48, borderRadius: 10, backgroundColor: "#EEF1F6" },
   iconFallback: { backgroundColor: theme.colors.primarySoft },
   label: { fontSize: 10, fontWeight: "800", letterSpacing: 1.4, color: theme.colors.muted },

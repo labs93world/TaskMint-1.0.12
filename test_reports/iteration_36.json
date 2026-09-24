@@ -1,0 +1,53 @@
+{
+  "summary": "Tested NativeAd viewport-containment fix on Expo web at 390x844. Bottom game placements PASS on all 6 game screens (tic-tac-toe, memory-match, math-sprint, higher-lower, tap-rush, trivia-streak): ads visible, height 210-668px, no horizontal/vertical overflow. In-card placements PASS on /quizzes (quiz-native-ad-active 292x210 inside card), /surveys (intro ad 292x210 inside card), /watch-earn and /withdraw (342x210). CRITICAL FAILURE remains on /daily-challenge in the unclaimed '4 mystery boxes' state (the exact state in the user's error screenshot): dc-native-ad y=680 h=210, bottom=890 > vh=844, page is NOT scrollable (scrollHeight=844, scrollY stays 0), so the ad card is permanently clipped ~46px at the bottom. The fix only works in the claimed/loading state (ad expands h=464 into blank space, bottom=844 exactly). Device-login flow verified working (token issued, /auth/me 200); deep-linking to game screens without a session produces repeated 'Not authenticated' toasts and no redirect to /login. ESLint: 2 pre-existing react/no-unescaped-entities errors unrelated to the ad change.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "dc-native-ad on /daily-challenge (unclaimed boxes state)", "issue": "NativeAd clipped at viewport bottom: ad bounds y=679.8 h=210 bottom=889.8 exceed vh=844 by ~46px; inner card bottom=873.8 also clipped. Screen is not scrollable (document scrollHeight=844=vh, wheel/scrollTo no-op), so the clipped area is unreachable. Root cause: SafeAreaView flex column with header+hero+boxGrid+empty legend (padding lg) consuming ~680px, leaving < minHeight(210) for the ad host; flexShrink cannot go below minHeight so it overflows. Needs: make the screen scrollable (ScrollView) or reduce/remove the empty legend spacer and let the ad shrink. Reference: frontend/app/daily-challenge.tsx:77-145, NativeAd.web.tsx:20-28 (host minHeight 210).", "testID": "dc-native-ad", "priority": "CRITICAL"}
+    ],
+    "integration_issues": [
+      {"flow": "Deep-link to authed game screens (/higher-lower, /quizzes, /surveys, /visit-earn) without an existing session", "issue": "Screens fire authed API calls before/without device login (deviceLogin only runs on /login screen, login.tsx:27). Result: repeated 'Not authenticated' error toasts, screens stuck on Loading or empty states, and their NativeAd placements never render. No redirect to /login. Only reproducible on fresh session deep-links; normal flow via login works.", "affected_testIDs": ["hl-native-ad", "quiz-native-ad-active", "surveys-native-ad-intro", "visit-native-ad"]}
+    ],
+    "design_issues": [
+      {"screen": "/visit-earn", "issues": ["Empty state ('No sites available right now') renders no NativeAd at all - ad only exists inside the sites-list branch (visit-earn.tsx:237). Given the user's requirement that native ads stay visible everywhere, consider rendering the ad in the empty state too.", "Empty state page is mostly blank (large unused vertical space)."]},
+      {"screen": "/daily-challenge", "issues": ["Empty legend View (daily-challenge.tsx:128-129) wastes 48px of vertical space that contributes to the ad overflow in the boxes state."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/screenshots_i36/daily-challenge.jpeg",
+    "/app/test_reports/screenshots_i36/dc_overflow_check.jpeg",
+    "/app/test_reports/screenshots_i36/auth_dc.jpeg",
+    "/app/test_reports/screenshots_i36/auth_hl.jpeg",
+    "/app/test_reports/screenshots_i36/auth_quizzes.jpeg",
+    "/app/test_reports/screenshots_i36/auth_surveys.jpeg",
+    "/app/test_reports/screenshots_i36/auth_visit.jpeg",
+    "/app/test_reports/screenshots_i36/quizzes_active_ad.jpeg",
+    "/app/test_reports/screenshots_i36/tic-tac-toe.jpeg",
+    "/app/test_reports/screenshots_i36/memory-match.jpeg",
+    "/app/test_reports/screenshots_i36/math-sprint.jpeg",
+    "/app/test_reports/screenshots_i36/tap-rush.jpeg",
+    "/app/test_reports/screenshots_i36/trivia-streak.jpeg",
+    "/app/test_reports/screenshots_i36/watch-earn.jpeg",
+    "/app/test_reports/screenshots_i36/withdraw.jpeg"
+  ],
+  "action_items": [
+    "CRITICAL: Fix /daily-challenge ad clipping in the unclaimed boxes state - wrap content in ScrollView (or reduce boxGrid/hero/legend heights) so dc-native-ad's minHeight 210 host never exceeds the viewport; remove the empty legend spacer. Verify at 390x844 that dc-native-ad bottom <= 844 with boxes visible.",
+    "Render NativeAd in /visit-earn empty state (no sites) so the placement is not invisible when there is no data.",
+    "Optional: add auth guard/redirect to /login when game screens load without a session token instead of repeated 'Not authenticated' toasts.",
+    "Minor ESLint: escape apostrophes (react/no-unescaped-entities) at math-sprint.tsx:187 and tap-rush.tsx:278 (pre-existing, unrelated to ad fix)."
+  ],
+  "critical_code_review_comments": [
+    "NativeAd host uses flexGrow+flexShrink with minHeight 210: expands into blank space correctly (verified h=464 on daily-challenge claimed state, h=668 on memory-match) but cannot shrink below 210 on space-constrained screens, causing the daily-challenge overflow.",
+    "Deep-link auth gap: deviceLogin is only invoked from login.tsx; other screens assume a token exists. Not caused by this iteration's change.",
+    "ESLint on the 9 changed files: only 2 pre-existing react/no-unescaped-entities errors; NativeAd.tsx, NativeAd.web.tsx and adWrap style changes are lint-clean.",
+    "No deprecated expo packages (expo-av, expo-barcode-scanner, expo-background-fetch) detected in the reviewed components; no SafeAreaView-from-react-native misuse in changed files (uses react-native-safe-area-context)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only review; device auth + /auth/me spot-checked 200)", "frontend": "11/12 ad placements pass; 1 CRITICAL fail (daily-challenge boxes state)"},
+  "seed_data_creation": "Two anonymous device users created via web device-login flow (TEST browser sessions); one earlier via curl device_id=TEST_iter36_webcheck. No production data modified.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "To test authed screens on web you must first goto /login and click [data-testid=login-continue-btn] (device login); fresh Playwright contexts have no session and game screens will 401. Daily-challenge has two layouts: claimed/loading (ad passes, h=464) vs unclaimed 4-boxes (ad clipped, bottom=890>844). dc-native-ad inner card margins are fine (x=24,w=342). quiz-native-ad-after only renders post-quiz-completion; quiz-native-ad-active is the in-card placement during a question.",
+  "rca_of_issue": "Bug: dc-native-ad clipped on /daily-challenge when mystery boxes render. Repro: 390x844 viewport, device-login, goto /daily-challenge with unclaimed state -> ad bottom=889.8 > vh=844, page not scrollable (scrollHeight=844). Cause: non-scrollable SafeAreaView flex column; fixed content (header+hero+2-row boxGrid+empty legend) leaves ~164px but ad host enforces minHeight 210 (flexShrink capped by minHeight). Mitigation: make the screen scrollable or reduce fixed content / lower ad minHeight on this screen. Note: main agent's smoke test only covered the low-content (claimed/loading) state where the ad correctly expands into blank space."
+}

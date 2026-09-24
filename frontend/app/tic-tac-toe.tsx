@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.bg },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: theme.spacing.md },
   title: { fontSize: 18, fontWeight: "800", color: theme.colors.text },
-  adWrap: { paddingHorizontal: theme.spacing.lg },
+  adWrap: { flex: 1, alignSelf: "stretch" },
   diffRow: { flexDirection: "row", justifyContent: "center", gap: 10, marginTop: 8 },
   diffBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border },
   diffBtnActive: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },

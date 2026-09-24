@@ -193,7 +193,10 @@ export default function VisitEarn() {
         {loading ? (
           <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 32 }} />
         ) : sites.length === 0 ? (
-          <Text style={styles.empty}>No sites available right now. Check back soon.</Text>
+          <>
+            <Text style={styles.empty}>No sites available right now. Check back soon.</Text>
+            <NativeAd testID="visit-native-ad-empty" />
+          </>
         ) : allCompleted ? (
           <View style={styles.doneCard} testID="visit-all-done">
             <View style={styles.doneIcon}><Check size={32} color={theme.colors.success} /></View>

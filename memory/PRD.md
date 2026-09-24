@@ -10,6 +10,12 @@ Imported from: https://github.com/93altaff/TaskMint-8-2
 ## Iteration 35 — Override freshness fix
 - **Withdraw override freshness** — Withdraw screen now re-fetches `/auth/me` on every focus and applies the user's latest `custom_withdraw_amounts` and `custom_exchange_ratio` before rendering chips, preventing stale global chips after an admin override. First-withdrawal chip filtering also uses the fresh user record.
 
+## Iteration 37 — Global NativeAd layout fix
+- **Flexible ad container** — shared native/web ad components now stretch horizontally, use safe-area-aware bottom padding, have a minimum usable height, and grow into unused vertical space instead of collapsing or overflowing.
+- **Game ad wrappers** — bottom ad wrappers on Tic-Tac-Toe, Tap Rush, Math Sprint, Higher/Lower, Memory Match, and Trivia now stretch/fill correctly so the shared ad can expand into blank space.
+- **Daily Challenge clipping fixed** — content is scrollable and the empty spacer was removed, so the ad remains fully visible in the four-box state.
+- **Empty Visit & Earn state** — now renders the same NativeAd placement instead of leaving the page without an ad.
+
 ## Iteration 36 — Campaign approval payout correction
 - **No automatic withdrawal history** — campaign approvals now only credit the approved points. Full, partial, and zero-point approvals never create withdrawal records or withdrawal ledger transactions automatically.
 - **Withdraw override freshness retained** — the Withdraw screen continues to load the user's latest custom chips/ratio on focus.

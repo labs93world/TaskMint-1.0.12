@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  View, Text, StyleSheet, TouchableOpacity,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView,
 } from "react-native";
 import { toast } from "sonner-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -83,52 +83,55 @@ export default function DailyChallenge() {
         <Sparkles size={22} color={theme.colors.primary} />
       </View>
 
-      <View style={styles.hero}>
-        <Gift size={64} color="#fff" />
-        <Text style={styles.heroTitle}>Mystery Box</Text>
-        <Text style={styles.heroSub}>Pick one box. Open once per day.</Text>
-        <Text style={styles.heroSub}>Jackpot Player: 1 in 100 = 50000 pts</Text>
-      </View>
-
-      {claimed === null ? (
-        <Text style={styles.loading}>Loading…</Text>
-      ) : claimed && revealedBox === null ? (
-        <View style={styles.claimedBox}>
-          <Text style={styles.claimedTxt}>✅ Already opened today.</Text>
-          <Text style={styles.claimedSub}>Come back tomorrow for another box.</Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.hero}>
+          <Gift size={64} color="#fff" />
+          <Text style={styles.heroTitle}>Mystery Box</Text>
+          <Text style={styles.heroSub}>Pick one box. Open once per day.</Text>
+          <Text style={styles.heroSub}>Jackpot Player: 1 in 100 = 50000 pts</Text>
         </View>
-      ) : (
-        <View style={styles.boxGrid}>
-          {[0, 1, 2, 3].map((i) => {
-            const revealed = revealedBox === i;
-            return (
-              <TouchableOpacity
-                key={i}
-                style={[styles.box, { backgroundColor: BOX_COLORS[i] }, revealed && styles.boxOpen]}
-                onPress={() => onPickBox(i)}
-                activeOpacity={0.85}
-                disabled={picking || claimed === true}
-                testID={`dc-box-${i}`}
-              >
-                {revealed && reward !== null ? (
-                  <>
-                    <Text style={styles.boxReward}>+{reward}</Text>
-                    <Text style={styles.boxRewardSub}>pts</Text>
-                    {jackpot && <Text style={styles.jackpotTxt}>🎰 JACKPOT</Text>}
-                  </>
-                ) : (
-                  <Gift size={48} color="#fff" />
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      )}
 
-      <View style={styles.legend}>
-      </View>
+        {claimed === null ? (
+          <Text style={styles.loading}>Loading…</Text>
+        ) : claimed && revealedBox === null ? (
+          <View style={styles.claimedBox}>
+            <Text style={styles.claimedTxt}>✅ Already opened today.</Text>
+            <Text style={styles.claimedSub}>Come back tomorrow for another box.</Text>
+          </View>
+        ) : (
+          <View style={styles.boxGrid}>
+            {[0, 1, 2, 3].map((i) => {
+              const revealed = revealedBox === i;
+              return (
+                <TouchableOpacity
+                  key={i}
+                  style={[styles.box, { backgroundColor: BOX_COLORS[i] }, revealed && styles.boxOpen]}
+                  onPress={() => onPickBox(i)}
+                  activeOpacity={0.85}
+                  disabled={picking || claimed === true}
+                  testID={`dc-box-${i}`}
+                >
+                  {revealed && reward !== null ? (
+                    <>
+                      <Text style={styles.boxReward}>+{reward}</Text>
+                      <Text style={styles.boxRewardSub}>pts</Text>
+                      {jackpot && <Text style={styles.jackpotTxt}>🎰 JACKPOT</Text>}
+                    </>
+                  ) : (
+                    <Gift size={48} color="#fff" />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
 
-      <NativeAd testID="dc-native-ad" />
+        <NativeAd testID="dc-native-ad" />
+      </ScrollView>
 
       <InterstitialAdModal
         visible={showRewarded && adCfg.ad_type === "interstitial"}
@@ -149,6 +152,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.bg },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: theme.spacing.md },
   title: { fontSize: 18, fontWeight: "800", color: theme.colors.text },
+  scroll: { flex: 1 },
+  scrollContent: { flexGrow: 1 },
   hero: {
     backgroundColor: theme.colors.primary,
     margin: theme.spacing.lg,
@@ -169,6 +174,4 @@ const styles = StyleSheet.create({
   boxReward: { color: "#fff", fontSize: 36, fontWeight: "900" },
   boxRewardSub: { color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: "700" },
   jackpotTxt: { color: "#fff", fontSize: 13, fontWeight: "800", marginTop: 6, letterSpacing: 1 },
-  legend: { padding: theme.spacing.lg },
-  legendTxt: { color: theme.colors.muted, fontSize: 13, marginTop: 4 },
 });

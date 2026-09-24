@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.bg },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: theme.spacing.md },
   title: { fontSize: 18, fontWeight: "800", color: theme.colors.text },
-  adWrap: { paddingHorizontal: theme.spacing.lg },
+  adWrap: { flex: 1, alignSelf: "stretch" },
   stats: { flexDirection: "row", justifyContent: "space-around", paddingHorizontal: theme.spacing.lg, marginBottom: 10 },
   statBox: { alignItems: "center" },
   statLabel: { fontSize: 11, color: theme.colors.muted, fontWeight: "700", letterSpacing: 1 },

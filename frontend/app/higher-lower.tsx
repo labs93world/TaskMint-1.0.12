@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
   },
   title: { fontSize: 18, fontWeight: "800", color: theme.colors.text },
-  adWrap: { paddingHorizontal: theme.spacing.lg },
+  adWrap: { flex: 1, alignSelf: "stretch" },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
   muted: { color: theme.colors.muted },
   body: { flex: 1, paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm, gap: 12 },

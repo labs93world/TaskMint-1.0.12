@@ -1,0 +1,35 @@
+{
+  "summary": "RETEST PASS. The iteration_36 CRITICAL failure on /daily-challenge is fixed: at 390x844 with all 4 mystery boxes rendered (unclaimed state), dc-native-ad is now fully visible - bbox y=631.78 h=212.2, bottom=844.0 = vh exactly (previously bottom=890, clipped 46px). Inner card fully visible (x=24,w=342,bottom=828). No horizontal overflow (scrollW=390=vw), zero console errors. Content now fits exactly in the viewport so the new ScrollView has no scroll range in this state (nothing is clipped, so no scrolling is needed; ScrollView wrapper verified in code at daily-challenge.tsx:86-90 and the empty legend spacer is removed). Regression spot-checks PASS: /tic-tac-toe ad y=518 h=326 bottom=844 fully visible; /memory-match ad y=176 h=668 bottom=844 fully visible (expands into blank space), no horizontal overflow on either. ESLint clean (exit 0) on daily-challenge.tsx, NativeAd.tsx, NativeAd.web.tsx.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/daily-challenge", "issues": ["Fit is exact (ad bottom = 844 = viewport height) in the boxes state; any future content addition to this screen will rely on the ScrollView scrolling. Not a bug - ScrollView is in place - but worth a visual check after any layout change."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/screenshots_i37/01_after_login.jpeg",
+    "/app/test_reports/screenshots_i37/02_dc_ad_after_scroll.jpeg",
+    "/app/test_reports/screenshots_i37/03_dc_top_boxes.jpeg",
+    "/app/test_reports/screenshots_i37/04_tic-tac-toe.jpeg",
+    "/app/test_reports/screenshots_i37/04_memory-match.jpeg",
+    "/app/test_reports/screenshots_i37/05_memory_match_ad.jpeg"
+  ],
+  "action_items": [
+    "None blocking. Carry-over from iteration_36 (out of scope for this retest, still open): render NativeAd in /visit-earn empty state; optional auth redirect to /login for deep-linked game screens without a session; 2 pre-existing react/no-unescaped-entities lint errors in math-sprint.tsx:187 and tap-rush.tsx:278."
+  ],
+  "critical_code_review_comments": [
+    "Fix verified: daily-challenge content is now inside ScrollView with contentContainerStyle flexGrow:1, empty legend spacer removed - resolves the minHeight-210 overflow identified in iteration_36 RCA.",
+    "NativeAd.tsx/NativeAd.web.tsx unchanged from verified layout (host flexGrow/flexShrink/minHeight 210, card minHeight 178, overflow hidden); both lint-clean.",
+    "No deprecated expo packages (expo-av, expo-barcode-scanner, expo-background-fetch) and no react-native SafeAreaView misuse in the reviewed files (uses react-native-safe-area-context)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only retest)", "frontend": "3/3 screens pass (daily-challenge critical retest + tic-tac-toe + memory-match regressions); ESLint 3/3 files clean"},
+  "seed_data_creation": "Two fresh anonymous device users created via web device-login flow (TEST browser sessions) during the two test runs. No production data modified.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The dc-native-ad clipping bug is FIXED. Correct testIDs: daily-challenge=dc-native-ad, memory-match=memory-native-ad, tic-tac-toe uses default/found via [data-testid=native-ad] fallback chain - check source for exact IDs before scripting. In the unclaimed 4-box state the page content now exactly equals viewport height (scrollH=844), so scroll probes will report no scrollable container - this is expected, not a failure. Device login: goto /login, click [data-testid=login-continue-btn], fresh context = fresh unclaimed user.",
+  "rca_of_issue": "Previous bug (iter36): dc-native-ad clipped 46px on /daily-challenge boxes state because the non-scrollable flex column left <210px for the ad host. Fix (iter37): content wrapped in ScrollView (flexGrow content container) + empty legend spacer removed. Verified resolved: ad bottom now exactly 844 (=viewport), fully visible, no overflow, no console errors."
+}
