@@ -64,13 +64,16 @@ export default function Home() {
   const submissionFor = (taskId: string) =>
     submissions.find((s) => s.taskId === taskId) ?? null;
 
-  // Ordering: latest tasks first (submission-on before submission-off), then approved, then rejected.
+  // Ordering: newest tasks first (submission-on, then submission-off),
+  // then pending, then approved, then rejected. Sort is stable so within
+  // each group the latest-created task stays on top.
   const sortedTasks = useMemo(() => {
     const rank = (t: OfferTask) => {
       const s = submissions.find((x) => x.taskId === t.id);
-      if (!s || s.status === "pending") return t.submissionEnabled ? 0 : 1;
-      if (s.status === "approved") return 2;
-      return 3; // rejected
+      if (!s) return t.submissionEnabled ? 0 : 1; // new task
+      if (s.status === "pending") return 2;
+      if (s.status === "approved") return 3;
+      return 4; // rejected
     };
     return [...(tasksQ.data ?? [])].sort((a, b) => rank(a) - rank(b));
   }, [tasksQ.data, submissions]);
@@ -139,7 +142,7 @@ export default function Home() {
         }
       >
         {!!(bannersQ.data && bannersQ.data.length) && (
-          <View style={{ marginTop: 8 }}>
+          <View style={{ marginTop: 6 }}>
             <BannerCarousel banners={bannersQ.data} />
           </View>
         )}
@@ -155,7 +158,7 @@ export default function Home() {
             ]}
           />
 
-          <View style={{ marginTop: 18 }}>
+          <View style={{ marginTop: 12 }}>
             {tab === "offerwall" ? (
               tasks.length === 0 ? (
                 <EmptyTasks loading={tasksQ.isLoading} onRetry={() => tasksQ.refetch()} />
@@ -255,42 +258,44 @@ const useStyles = makeStyles((c) => ({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingBottom: 8,
     backgroundColor: c.surface,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: c.brandTertiary,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
-  avatarImg: { width: 44, height: 44 },
+  avatarImg: { width: 40, height: 40 },
   hello: { fontSize: 13, color: c.muted, fontWeight: "600" },
-  name: { fontSize: 20, fontWeight: "800", color: c.onSurface },
+  name: { fontSize: 18, fontWeight: "800", color: c.onSurface },
   pointsPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    flexShrink: 0,
+    marginLeft: 6,
     backgroundColor: c.brandTertiary,
-    paddingVertical: 8,
+    paddingVertical: 7,
     paddingHorizontal: 14,
     borderRadius: 999,
   },
   pointsText: { fontSize: 15, fontWeight: "800", color: c.brand },
-  body: { paddingHorizontal: 16, marginTop: 16 },
+  body: { paddingHorizontal: 16, marginTop: 10 },
   taskCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     backgroundColor: c.surfaceSecondary,
     borderRadius: 18,
-    padding: 14,
-    marginBottom: 12,
+    padding: 12,
+    marginBottom: 10,
     shadowColor: "#0F172A",
     shadowOpacity: 0.05,
     shadowRadius: 12,

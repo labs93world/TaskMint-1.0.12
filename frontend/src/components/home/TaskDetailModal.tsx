@@ -82,48 +82,42 @@ export function TaskDetailModal({
           )}
           {submission!.status === "pending" && (
             <Text style={styles.proofText}>
-              We're reviewing your submission. You'll be credited once approved.
+              {"We're reviewing your submission. You'll be credited once approved."}
             </Text>
           )}
         </View>
       ) : !started ? (
         <Button
-          label="Start task"
+          label={task.submissionEnabled ? "Start task" : "Open task"}
           testID="task-start-button"
           onPress={() => {
             if (task.taskUrl) Linking.openURL(task.taskUrl).catch(() => {});
             if (task.submissionEnabled) {
               setStarted(true);
             } else {
-              // no proof needed — submit immediately, no proof field or submit button
-              onSubmit("(no proof required)");
+              // Submission disabled: just open the link — no proof field, no submit.
+              close();
             }
           }}
           style={{ marginTop: 14 }}
         />
       ) : (
         <View style={{ marginTop: 16 }}>
-          {task.submissionEnabled && (
-            <>
-              <Text style={styles.inputLabel}>Submit proof</Text>
-              <TextInput
-                testID="task-proof-input"
-                value={proof}
-                onChangeText={setProof}
-                placeholder={task.proofHint || "Enter your proof here"}
-                placeholderTextColor={colors.muted}
-                style={styles.input}
-                multiline
-              />
-            </>
-          )}
+          <Text style={styles.inputLabel}>Submit proof</Text>
+          <TextInput
+            testID="task-proof-input"
+            value={proof}
+            onChangeText={setProof}
+            placeholder={task.proofHint || "Enter your proof here"}
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            multiline
+          />
           <Button
             label="Submit"
             testID="task-submit-button"
             loading={submitting}
-            onPress={() =>
-              onSubmit(task.submissionEnabled ? proof.trim() : "(no proof required)")
-            }
+            onPress={() => onSubmit(proof.trim())}
             style={{ marginTop: 14 }}
           />
         </View>

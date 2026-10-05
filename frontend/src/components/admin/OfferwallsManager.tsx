@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { Text, View } from "react-native";
-import { Image } from "expo-image";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { makeStyles, useTheme } from "@/src/theme";
 import { Popup } from "@/src/components/ui/Popup";
 import { Button } from "@/src/components/ui/Button";
+import { TaskLogo } from "@/src/components/ui/TaskLogo";
 import { useToast } from "@/src/components/ui/Toast";
 import { IconBtn, Field, ToggleRow } from "./BannersManager";
 import {
@@ -68,8 +68,8 @@ export function OfferwallsManager() {
   };
 
   const save = async () => {
-    if (!form.title.trim() || !form.logoUrl.trim() || !form.reward) {
-      toast.show("Title, logo URL and reward are required", "error");
+    if (!form.title.trim() || !form.reward) {
+      toast.show("Title and reward are required", "error");
       return;
     }
     setSaving(true);
@@ -115,7 +115,7 @@ export function OfferwallsManager() {
       {tasks.map((t) => (
         <View key={t.id} style={styles.card} testID={`admin-task-${t.id}`}>
           <View style={styles.row}>
-            <Image source={{ uri: t.logoUrl }} style={styles.logo} contentFit="cover" />
+            <TaskLogo url={t.logoUrl} size={46} />
             <View style={{ flex: 1 }}>
               <Text style={styles.title} numberOfLines={1}>
                 {t.title} {t.hidden ? "(hidden)" : ""}
@@ -139,7 +139,7 @@ export function OfferwallsManager() {
         <KeyboardAwareScrollView bottomOffset={20} style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
           <Field label="Title" value={form.title} onChange={(v) => set("title", v)} placeholder="e.g. Navi" />
           <Field label="Subtitle" value={form.subtitle} onChange={(v) => set("subtitle", v)} placeholder="Install/register" />
-          <Field label="Logo URL" value={form.logoUrl} onChange={(v) => set("logoUrl", v)} placeholder="https://..." />
+          <Field label="Logo URL (optional)" value={form.logoUrl} onChange={(v) => set("logoUrl", v)} placeholder="Leave empty for default icon" />
           <Field label="Task URL" value={form.taskUrl} onChange={(v) => set("taskUrl", v)} placeholder="https://..." />
           <Field label="Rules" value={form.rules} onChange={(v) => set("rules", v)} placeholder="How to complete..." multiline />
           <Field label="Reward (₹)" value={form.reward} onChange={(v) => set("reward", v.replace(/[^0-9.]/g, ""))} placeholder="125" keyboardType="number-pad" />

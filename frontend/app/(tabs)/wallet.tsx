@@ -119,8 +119,7 @@ export default function Wallet() {
         </View>
 
         {/* Withdraw */}
-        <Text style={styles.sectionTitle}>Withdraw</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, { marginTop: 22 }]}>
           <Segmented
             testID="wallet-method"
             value={method}
@@ -198,7 +197,7 @@ export default function Wallet() {
         </View>
 
         {/* History */}
-        <Text style={styles.sectionTitle}>History</Text>
+        <View style={{ height: 22 }} />
         <Segmented
           testID="wallet-history-tabs"
           value={histTab}

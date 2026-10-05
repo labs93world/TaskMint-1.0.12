@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { makeStyles, useTheme } from "@/src/theme";
 import { Icon, IconName } from "@/src/components/ui/Icon";
@@ -22,7 +22,10 @@ export default function Admin() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const qc = useQueryClient();
   const [manageTab, setManageTab] = useState("banners");
+
+  const onRefresh = () => qc.invalidateQueries();
 
   const usersQ = useQuery({ queryKey: ["count-users"], queryFn: countUsers });
   const activeQ = useQuery({ queryKey: ["count-active"], queryFn: countActiveToday });
@@ -66,9 +69,14 @@ export default function Admin() {
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back} testID="admin-back">
-          <Icon name="arrow-left" size={22} color={colors.onSurface} weight="bold" />
-        </Pressable>
+        <View style={styles.headerSide}>
+          <Pressable onPress={() => router.back()} hitSlop={10} style={styles.iconBtn} testID="admin-back">
+            <Icon name="arrow-left" size={22} color={colors.onSurface} weight="bold" />
+          </Pressable>
+          <Pressable onPress={onRefresh} hitSlop={10} style={styles.iconBtn} testID="admin-refresh">
+            <Icon name="refresh" size={21} color={colors.brand} weight="bold" />
+          </Pressable>
+        </View>
         <Text style={styles.headerTitle}>Admin Panel</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -77,7 +85,6 @@ export default function Admin() {
         contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.section}>Dashboard</Text>
         <View style={styles.statsRow}>
           {stats.map((s) => {
             const Wrapper: any = s.onPress ? Pressable : View;
@@ -102,7 +109,7 @@ export default function Admin() {
           })}
         </View>
 
-        <Text style={styles.section}>Manage</Text>
+        <View style={{ height: 22 }} />
         <Segmented
           testID="manage-tabs"
           value={manageTab}
@@ -134,7 +141,8 @@ const useStyles = makeStyles((c) => ({
     borderBottomWidth: 1,
     borderBottomColor: c.divider,
   },
-  back: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  headerSide: { flexDirection: "row", alignItems: "center", gap: 2 },
+  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 18, fontWeight: "800", color: c.onSurface },
   section: { fontSize: 18, fontWeight: "800", color: c.onSurface, marginTop: 20, marginBottom: 14 },
   statsRow: { flexDirection: "row", gap: 8 },

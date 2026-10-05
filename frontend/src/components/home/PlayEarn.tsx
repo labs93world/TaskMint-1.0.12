@@ -108,7 +108,6 @@ export function PlayEarn() {
       </View>
 
       {/* Games grid */}
-      <Text style={styles.sectionTitle}>Play & Earn</Text>
       <View style={styles.grid}>
         {GAMES.map((g) => (
           <Pressable
@@ -158,7 +157,7 @@ const useStyles = makeStyles((c) => ({
   claimBtnDone: { backgroundColor: "rgba(255,255,255,0.15)" },
   claimText: { color: "#FFFFFF", fontWeight: "800", fontSize: 15 },
   sectionTitle: { fontSize: 18, fontWeight: "800", color: c.onSurface, marginTop: 22, marginBottom: 12 },
-  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 12 },
+  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 12, marginTop: 16 },
   gameCard: {
     width: "48%",
     backgroundColor: c.surfaceSecondary,
