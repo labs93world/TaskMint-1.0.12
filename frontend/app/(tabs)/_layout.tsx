@@ -1,95 +1,96 @@
-import React, { useEffect } from "react";
-import { Tabs, useRouter } from "expo-router";
-import { Home, Wallet, User, Coins } from "lucide-react-native";
-import { useAuth } from "../../src/context/AuthContext";
-import { theme } from "../../src/lib/theme";
-import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet } from "react-native";
+import React from "react";
+import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import BannerAd from "../../src/components/BannerAd";
+import { Tabs } from "expo-router";
+import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import * as Haptics from "expo-haptics";
 
-const TAB_ICONS: Record<string, any> = {
-  home: Home, earn: Coins, wallet: Wallet, profile: User,
-};
-const TAB_LABELS: Record<string, string> = {
-  home: "Home", earn: "Earn", wallet: "Wallet", profile: "Profile",
-};
+import { makeStyles, useTheme } from "@/src/theme";
+import { Icon, IconName } from "@/src/components/ui/Icon";
+import { AdBanner } from "@/src/ads";
 
-function CustomTabBar({ state, navigation }: any) {
+const TABS: { name: string; label: string; icon: IconName }[] = [
+  { name: "index", label: "Home", icon: "house" },
+  { name: "wallet", label: "Wallet", icon: "wallet" },
+  { name: "profile", label: "Profile", icon: "user" },
+];
+
+function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+
   return (
-    <View style={[styles.barWrap, { paddingBottom: insets.bottom }]} testID="tab-bar-with-ad">
-      <BannerAd testID="tabs-banner-ad" />
-      <View style={styles.row}>
-        {state.routes.map((route: any, index: number) => {
-          const focused = state.index === index;
-          const Icon = TAB_ICONS[route.name] || Home;
-          const color = focused ? theme.colors.primary : theme.colors.muted;
-          const onPress = () => {
-            const event = navigation.emit({
-              type: "tabPress", target: route.key, canPreventDefault: true,
-            });
-            if (!focused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          };
-          return (
-            <TouchableOpacity
-              key={route.key}
-              style={styles.tab}
-              onPress={onPress}
-              accessibilityRole="button"
-              testID={`tab-${route.name}`}
-            >
-              <Icon size={22} color={color} />
-              <Text style={[styles.label, { color }]}>{TAB_LABELS[route.name] || route.name}</Text>
-            </TouchableOpacity>
-          );
-        })}
+    <View style={[styles.wrap, { paddingBottom: insets.bottom }]}>
+      {/* Single shared banner ad above the tab buttons (native build only) */}
+      <View style={styles.bannerSlot} testID="tab-banner-ad">
+        <AdBanner />
+      </View>
+      <View style={styles.bar}>
+        {state.routes
+          .filter((r) => TABS.some((t) => t.name === r.name))
+          .map((route) => {
+            const tab = TABS.find((t) => t.name === route.name)!;
+            const routeIndex = state.routes.findIndex((r) => r.key === route.key);
+            const focused = state.index === routeIndex;
+            const color = focused ? colors.brandPrimary : colors.muted;
+            return (
+              <Pressable
+                key={route.key}
+                testID={`tab-${tab.label.toLowerCase()}`}
+                style={styles.item}
+                onPress={() => {
+                  Haptics.selectionAsync().catch(() => {});
+                  const event = navigation.emit({
+                    type: "tabPress",
+                    target: route.key,
+                    canPreventDefault: true,
+                  });
+                  if (!focused && !event.defaultPrevented) {
+                    navigation.navigate(route.name);
+                  }
+                }}
+              >
+                <Icon
+                  name={tab.icon}
+                  size={26}
+                  color={color}
+                  weight={focused ? "fill" : "regular"}
+                />
+                <Text style={[styles.label, { color }]}>{tab.label}</Text>
+              </Pressable>
+            );
+          })}
       </View>
     </View>
   );
 }
 
 export default function TabsLayout() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && !user) router.replace("/login");
-  }, [loading, user, router]);
-
-  if (loading || !user) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.colors.bg }}>
-        <ActivityIndicator color={theme.colors.primary} size="large" />
-      </View>
-    );
-  }
-
   return (
     <Tabs
-      screenOptions={{ headerShown: false }}
       tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
-      <Tabs.Screen name="home" />
-      <Tabs.Screen name="earn" />
+      <Tabs.Screen name="index" />
       <Tabs.Screen name="wallet" />
       <Tabs.Screen name="profile" />
     </Tabs>
   );
 }
 
-const styles = StyleSheet.create({
-  barWrap: {
-    backgroundColor: "#fff",
-    borderTopWidth: 1, borderTopColor: theme.colors.border,
+const useStyles = makeStyles((c) => ({
+  wrap: {
+    backgroundColor: c.surfaceSecondary,
+    borderTopWidth: 1,
+    borderTopColor: c.border,
   },
-  row: {
-    flexDirection: "row", height: 64,
-    paddingTop: 6,
+  bannerSlot: { alignItems: "center", justifyContent: "center" },
+  bar: {
+    flexDirection: "row",
+    height: 64,
+    alignItems: "center",
   },
-  tab: {
-    flex: 1, alignItems: "center", justifyContent: "center", gap: 4,
-  },
-  label: { fontSize: 11, fontWeight: "700" },
-});
+  item: { flex: 1, alignItems: "center", justifyContent: "center", gap: 3 },
+  label: { fontSize: 12, fontWeight: "700" },
+}));

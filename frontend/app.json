@@ -1,53 +1,30 @@
 {
   "expo": {
     "name": "TaskMint",
-    "slug": "taskmint",
-    "version": "1.0.1",
+    "slug": "frontend",
+    "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/app-logo.png",
     "scheme": "taskmint",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#4F46E5"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.labs93world.taskmint",
       "infoPlist": {
-        "NSUserTrackingUsageDescription": "Show personalised rewards and offers",
-        "NSPhotoLibraryUsageDescription": "Upload photos to submit task proof"
+        "SKAdNetworkItems": []
       }
     },
     "android": {
-      "package": "com.labs93world.taskmint",
-      "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#4F46E5"
+        "foregroundImage": "./assets/images/app-logo.png",
+        "backgroundColor": "#FFFFFF"
       },
-      "edgeToEdgeEnabled": true,
-      "permissions": [
-        "INTERNET",
-        "ACCESS_NETWORK_STATE",
-        "POST_NOTIFICATIONS"
-      ],
-      "splash": {
-        "image": "./assets/images/splash-icon.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#4F46E5",
-        "mdpi": "./assets/images/splash-icon.png",
-        "hdpi": "./assets/images/splash-icon.png",
-        "xhdpi": "./assets/images/splash-icon.png",
-        "xxhdpi": "./assets/images/splash-icon.png",
-        "xxxhdpi": "./assets/images/splash-icon.png"
-      }
+      "package": "com.labs93world.taskmint",
+      "permissions": ["android.permission.INTERNET", "com.google.android.gms.permission.AD_ID"]
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -55,60 +32,27 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 220,
+          "image": "./assets/images/app-logo.png",
+          "imageWidth": 180,
           "resizeMode": "contain",
-          "backgroundColor": "#4F46E5",
-          "android": {
-            "image": "./assets/images/splash-icon.png",
-            "resizeMode": "contain",
-            "backgroundColor": "#4F46E5"
-          },
-          "ios": {
-            "image": "./assets/images/splash-icon.png",
-            "resizeMode": "contain",
-            "backgroundColor": "#4F46E5"
-          }
+          "backgroundColor": "#FFFFFF"
         }
       ],
+      "expo-font",
+      "expo-image",
+      "expo-secure-store",
       "expo-web-browser",
-      [
-        "expo-navigation-bar",
-        {
-          "visibility": "hidden",
-          "behavior": "overlay-swipe"
-        }
-      ],
+      "expo-status-bar",
       [
         "react-native-google-mobile-ads",
         {
           "androidAppId": "ca-app-pub-7744865309171344~1346257321",
-          "iosAppId": "ca-app-pub-7744865309171344~1346257321",
-          "userTrackingUsageDescription": "This identifier will be used to deliver personalised ads to you."
+          "iosAppId": "ca-app-pub-7744865309171344~1346257321"
         }
-      ],
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "kotlinVersion": "2.1.0"
-          }
-        }
-      ],
-      "expo-font",
-      "expo-secure-store"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "admob": {
-        "appId": "ca-app-pub-7744865309171344~1346257321",
-        "banner": "ca-app-pub-7744865309171344/7215240687",
-        "native": "ca-app-pub-7744865309171344/5951555040",
-        "interstitial": "ca-app-pub-7744865309171344/9409414321",
-        "rewarded": "ca-app-pub-7744865309171344/8895153865"
-      }
     }
   }
 }

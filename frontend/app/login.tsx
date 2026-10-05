@@ -1,135 +1,118 @@
-import React, { useState } from "react";
-import {
-  View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator,
-} from "react-native";
-import { toast } from "sonner-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React from "react";
+import { ScrollView, Text, View } from "react-native";
+import { Image } from "expo-image";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Sparkles, Gift, Coins } from "lucide-react-native";
-import { theme } from "../src/lib/theme";
-import { useAuth } from "../src/context/AuthContext";
 
-const LOGIN_LOGO =
-  "https://customer-assets.emergentagent.com/job_taskmint-rebuild-1/artifacts/fc2x2fug_IMG_20260614_122310.png";
-const LOGIN_HERO =
-  "https://customer-assets.emergentagent.com/job_mint-tasks-sync/artifacts/pnm3c2nn_photo-1671749999622-4087a86868cc.jpeg";
+import { makeStyles, useTheme } from "@/src/theme";
+import { Button } from "@/src/components/ui/Button";
+import { Icon, IconName } from "@/src/components/ui/Icon";
+
+const GIFT_IMG =
+  "https://images.unsplash.com/photo-1674620213535-9b2a2553ef40?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwxfHxnaWZ0JTIwYm94JTIwM2QlMjByZW5kZXJpbmclMjB3aGl0ZSUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzkxMDE4NTc0fDA&ixlib=rb-4.1.0&q=85";
+
+const FEATURES: { icon: IconName; label: string }[] = [
+  { icon: "gift", label: "High paying Tasks" },
+  { icon: "sparkle", label: "Multiple Earning ways" },
+  { icon: "coins", label: "Withdraw to UPI Or Bank" },
+];
 
 export default function Login() {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { deviceLogin } = useAuth();
-  const [busy, setBusy] = useState(false);
-
-  const onContinue = async () => {
-    if (busy) return;
-    setBusy(true);
-    const startedAt = Date.now();
-    try {
-      await deviceLogin();
-      // Hold the spinner for at least 2 seconds so the transition feels intentional.
-      const elapsed = Date.now() - startedAt;
-      if (elapsed < 2000) {
-        await new Promise((r) => setTimeout(r, 2000 - elapsed));
-      }
-      router.replace("/(tabs)/home?welcome=1");
-    } catch (e: any) {
-      toast.error("Could not sign in", { description: e?.message || "Try again" });
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <View style={styles.wrap} testID="login-screen">
-        <View style={styles.brandWrap}>
-          <View style={styles.logoCircle}>
-            <Image
-              source={{ uri: LOGIN_LOGO }}
-              style={styles.logoImg}
-              resizeMode="contain"
-            />
+    <View style={[styles.screen, { paddingTop: insets.top }]} testID="login-screen">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <Image
+          source={require("../assets/images/app-logo.png")}
+          style={styles.logo}
+          contentFit="contain"
+        />
+        <Text style={styles.brand}>TaskMint</Text>
+        <Text style={styles.tagline}>Earn rewards. Get paid. Anytime.</Text>
+
+        <View style={styles.card}>
+          <Image source={{ uri: GIFT_IMG }} style={styles.gift} contentFit="cover" />
+          <View style={styles.features}>
+            {FEATURES.map((f) => (
+              <View key={f.label} style={styles.featureRow}>
+                <View style={styles.featureIcon}>
+                  <Icon name={f.icon} size={22} color={colors.brand} weight="bold" />
+                </View>
+                <Text style={styles.featureLabel}>{f.label}</Text>
+              </View>
+            ))}
           </View>
-          <Text style={styles.brand}>TaskMint</Text>
-          <Text style={styles.tag}>Earn rewards. Get paid. Anytime.</Text>
         </View>
+      </ScrollView>
 
-        <View style={styles.heroCard}>
-          <Image
-            source={{ uri: LOGIN_HERO }}
-            style={styles.heroImg}
-            resizeMode="cover"
-          />
-          <View style={styles.benefits}>
-            <Benefit icon={<Gift size={18} color={theme.colors.primary} />} text="High paying Tasks" />
-            <Benefit icon={<Sparkles size={18} color={theme.colors.primary} />} text="Multiple Earning ways" />
-            <Benefit icon={<Coins size={18} color={theme.colors.primary} />} text="Withdraw to UPI Or Bank" />
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.continueBtn}
-          onPress={onContinue}
-          disabled={busy}
-          testID="login-continue-btn"
-          activeOpacity={0.85}
-        >
-          {busy ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.continueText}>Continue</Text>
-          )}
-        </TouchableOpacity>
-
-        <Text style={styles.legal}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+        <Button
+          label="Continue"
+          testID="login-continue-button"
+          onPress={() => router.push("/details")}
+        />
+        <Text style={styles.terms}>
           By continuing, you agree to our Terms & Privacy Policy
         </Text>
       </View>
-    </SafeAreaView>
-  );
-}
-
-function Benefit({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return (
-    <View style={styles.benefitRow}>
-      <View style={styles.benefitIcon}>{icon}</View>
-      <Text style={styles.benefitText}>{text}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: theme.colors.bg },
-  wrap: {
-    flex: 1, padding: theme.spacing.lg, justifyContent: "center", gap: theme.spacing.lg,
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.surface },
+  content: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24, alignItems: "center" },
+  logo: { width: 84, height: 72, marginTop: 8 },
+  brand: {
+    fontSize: 40,
+    fontWeight: "800",
+    color: c.brandPrimary,
+    marginTop: 12,
+    letterSpacing: -0.5,
   },
-  brandWrap: { alignItems: "center", gap: theme.spacing.sm },
-  logoCircle: {
-    width: 120, height: 120, maxWidth: "30%", aspectRatio: 1,
-    alignItems: "center", justifyContent: "center",
+  tagline: { fontSize: 18, color: c.muted, marginTop: 8, fontWeight: "600" },
+  card: {
+    backgroundColor: c.surfaceSecondary,
+    borderRadius: 24,
+    padding: 16,
+    marginTop: 28,
+    width: "100%",
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
   },
-  logoImg: { width: "100%", height: "100%" },
-  brand: { fontSize: 34, fontWeight: "800", color: theme.colors.text, letterSpacing: -0.5 },
-  tag: { fontSize: 14, color: theme.colors.muted, fontWeight: "500" },
-  heroCard: {
-    backgroundColor: theme.colors.surface, borderRadius: theme.radii.xl,
-    padding: theme.spacing.md,
+  gift: {
+    width: "100%",
+    height: 200,
+    borderRadius: 16,
+    backgroundColor: c.surfaceTertiary,
   },
-  heroImg: {
-    width: "100%", height: 180, borderRadius: theme.radii.lg,
-    marginBottom: theme.spacing.md, backgroundColor: "#ddd",
+  features: { marginTop: 18, gap: 18, paddingHorizontal: 4, paddingBottom: 6 },
+  featureRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+  featureIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: c.brandTertiary,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  benefits: { gap: 14, paddingVertical: 8 },
-  benefitRow: { flexDirection: "row", alignItems: "center", gap: 14 },
-  benefitIcon: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: theme.colors.primarySoft,
-    alignItems: "center", justifyContent: "center",
+  featureLabel: { fontSize: 20, fontWeight: "800", color: c.onSurfaceSecondary },
+  footer: { paddingHorizontal: 24, paddingTop: 8 },
+  terms: {
+    textAlign: "center",
+    color: c.muted,
+    marginTop: 14,
+    fontSize: 13,
+    lineHeight: 19,
   },
-  benefitText: { fontSize: 16, color: theme.colors.text, fontWeight: "700" },
-  continueBtn: {
-    height: 64, borderRadius: theme.radii.pill,
-    backgroundColor: "#0F1729", alignItems: "center", justifyContent: "center",
-  },
-  continueText: { color: "#fff", fontSize: 20, fontWeight: "700" },
-  legal: { textAlign: "center", color: theme.colors.muted, fontSize: 12, marginTop: -4 },
-});
+}));

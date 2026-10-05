@@ -79,13 +79,10 @@ agenthub/agents/youtube/db
 memory/test_credentials.md
 
 # Mobile development
-android-sdk/-e 
-
-# Environment and credential files
+android-sdk/
+.env
+.env.*
+*.env
 credentials.json
-*.pem
 *.key
 .credentials
-# Note: .env files are intentionally NOT ignored — deployment flow requires
-# them to be present in the container / repo (backend MONGO_URL, DB_NAME,
-# ADMIN_EMAIL etc.). Do not add generic .env exclusions here.

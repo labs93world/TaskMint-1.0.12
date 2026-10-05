@@ -1,47 +1,34 @@
 {
-  "summary": "Comprehensive backend + frontend testing of TaskMint earning app. 27/27 backend pytest tests pass (100%). All public, auth, tasks, wallet, withdraw, and admin endpoints validated end-to-end. Frontend Expo web preview renders correctly: login screen, home (balance/banners/Ways to Earn/campaigns), bottom tabs (Home/Refer/Wallet/Profile), profile with ADMIN badge, withdraw, checkin, spin (SVG renders), scratch, quizzes, surveys, and all 5 admin routes (/admin, /admin/banners, /admin/campaigns, /admin/withdrawals, /admin/links). Zero JavaScript page errors during navigation.",
-  "backend_issues": {
-    "critical": [],
-    "minor": [
-      {"endpoint": "POST /api/withdraw", "issue": "Points are deducted immediately and refunded only on rejection. If admin marks 'successful' there is no double-deduction (correct), but a rejected->successful flip would not re-deduct points. Edge case but worth noting."},
-      {"endpoint": "POST /api/tasks/quiz", "issue": "Reward formula `max(5, correct*5)` ignores 'total' parameter, so 100/100 vs 1/100 yields 500 vs 5. Spec said 'max 5*correct or min 5' so this matches, but no validation that correct<=total."}
-    ]
-  },
+  "summary": "Frontend-only testing of TaskMint Expo app (mobile viewport 390x844). All 11 critical flows PASS: Login→Details→Home onboarding, name/mobile validation, Home header (points pill shows 0 pts initially, 50 pts after daily check-in), segmented toggle (Offerwall/Play & Earn), empty-state for Firestore-locked Offerwall (no crash), daily-checkin-button adds +50 points, game-card navigation (higher-lower), game-get-chances adds +5 chances (ads no-op on web as expected), Wallet balance reflects points/1000 (₹0.05 for 50 pts), amount chip selection, method toggle, history tabs, withdraw validation shows error toast on invalid input, Profile long-press on version opens admin-key-modal, wrong key → greet-modal, correct key 'TaskMint000' → Admin Panel, manage-tabs switches between Banners/Offerwalls/Update without crash, admin stat cards render (payouts/offerwall stats show '—' because Firestore is locked, which is EXPECTED). Firestore permission-denied errors seen in console (expected). No red-screen crashes anywhere. Minor non-blocking console warnings only (RN Web deprecations: shadow* style props, pointerEvents, useNativeDriver fallback — these are React Native Web platform warnings, not bugs).",
+  "backend_issues": { "critical": [], "minor": [] },
   "frontend_issues": {
     "ui_bugs": [],
     "integration_issues": [],
     "design_issues": [
-      {"screen": "global", "issues": ["React Native deprecation warnings: 'textShadow*' and 'shadow*' style props are deprecated (use textShadow / boxShadow). props.pointerEvents deprecated. Cosmetic only - no functional impact."]}
+      {"screen": "admin/index", "issues": ["Dashboard stat cards are in a horizontal ScrollView — on 390px viewport only ~2.5 cards are visible at a time; this is intentional horizontal scroll, user can swipe. Not a bug but worth confirming on real device."]}
     ],
     "react_native_issues": [
-      {"component": "(tabs)/_layout.tsx", "issue": "Bottom tab buttons do not expose testID like 'tab-home', 'tab-refer', 'tab-wallet', 'tab-profile'. Navigation works via text label but testIDs would make automated tests more robust. Non-blocking."}
+      {"component": "RN Web shadow props", "issue": "Multiple components use shadow* style props which are deprecated on RN Web ('shadow*' style props are deprecated. Use 'boxShadow'). Only a web preview warning; native Android/iOS still support shadow* properly. Non-blocking."},
+      {"component": "Animated useNativeDriver", "issue": "Console warning: 'useNativeDriver is not supported because the native animated module is missing' — this is the expected RN Web fallback to JS-based animation, not an issue on native builds."}
     ]
   },
-  "test_report_links": [
-    "/app/backend/tests/test_taskmint_api.py",
-    "/app/backend/tests/conftest.py",
-    "/app/test_reports/pytest/pytest_results.xml"
-  ],
+  "test_report_links": ["/tmp/final.png"],
   "action_items": [
-    "(Optional) Add testID props to bottom Tab.Screen entries (tabBarTestID) for tab-home/refer/wallet/profile.",
-    "(Optional) Migrate deprecated style props textShadow*/shadow* to textShadow/boxShadow to silence Expo warnings.",
-    "(Optional) Add server-side guard in /api/tasks/quiz that correct<=total to avoid arbitrary high payouts."
+    "No blocker bugs — all requested flows pass. Firestore rules remain locked (expected for this iteration).",
+    "Optional polish: migrate shadow* styles to boxShadow and props.pointerEvents to style.pointerEvents to silence RN Web deprecation warnings (cosmetic only).",
+    "When Firestore rules are opened in a later iteration, re-test: banner carousel visibility, offerwall tasks list + task detail popup + proof submission, payout+offerwall submission → admin counters increment and admin review screens list items."
   ],
   "critical_code_review_comments": [
-    "server.py is a single 545-line file. Acceptable for current scope but consider splitting into routers/{auth,tasks,withdraw,admin}.py if it grows.",
-    "Auth correctly excludes _id from MongoDB queries everywhere (uses {'_id': 0} projection).",
-    "Bearer token + cookie session both supported by get_current_user - good for web + mobile.",
-    "CORS uses allow_origins=['*'] with allow_credentials=True - in strict CORS this combo is rejected by browsers; preview backend appears permissive but production should pin origins.",
-    "Withdraw deducts points immediately and refunds on reject - correct behaviour for pending hold."
+    "UserContext.spendPoints uses setPoints functional updater + setTimeout(0) tick to read 'ok' — works but fragile; consider using a ref or returning a boolean from a non-React path to avoid race conditions on rapid taps.",
+    "game/[id].tsx and admin/index.tsx are well under 700 lines and modular — no DRY violations spotted.",
+    "All interactive elements have testID attributes as required.",
+    "Firestore errors are correctly swallowed in UserContext.reconcile with empty catch, preventing crashes."
   ],
-  "updated_files": [
-    "/app/backend/tests/conftest.py (created)",
-    "/app/backend/tests/test_taskmint_api.py (created, 27 tests)"
-  ],
-  "success_rate": {"backend": "100% (27/27)", "frontend": "100% (all routes load, no JS errors, all expected UI elements found)"},
-  "seed_data_creation": "Created admin user via mongosh (email 93altaff@gmail.com, is_admin=true, points=5000, token=TEST_session_fe_1777376293164) for FE tests. Backend pytest creates+cleans TEST_-prefixed users/sessions/transactions/withdrawals per test. Existing seeded banners (3) and campaigns (5) verified.",
+  "updated_files": [],
+  "success_rate": { "backend": "N/A (frontend-only)", "frontend": "100% (19/19 steps PASS)" },
+  "seed_data_creation": "None. Onboarded with name='Test User', mobile='9876543210' locally on device.",
   "retest_needed": false,
-  "should_main_agent_self_test": true,
-  "context_for_next_testing_agent": "Backend test suite at /app/backend/tests/test_taskmint_api.py with conftest.py covers all endpoints. Run: pytest /app/backend/tests/ -v --junitxml=/app/test_reports/pytest/pytest_results.xml. Frontend uses localStorage key 'tm_session_token'. To bootstrap admin auth without OAuth: insert user (is_admin=true) + user_sessions doc directly. AdMob ads are intentional placeholders showing 'ADVERTISEMENT / AdMob banner' in preview - only activate in EAS production builds (not a bug).",
-  "rca_of_issue": "N/A - no critical bugs. 2 initial test failures (spin/scratch limit) were due to test setup not setting last_activity_date=today, which caused backend's reset_daily_limits_if_needed() to reset the counter back to 0. Fixed in tests; backend behavior is correct (daily limits auto-reset on new UTC day)."
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Firestore rules are locked (permission-denied on all reads). Local-only flows (onboarding, points math, games+chances, daily check-in, wallet UI, admin access gate, admin manage tabs) all verified working. Once Firestore rules open up, re-test: BannerCarousel display, Offerwall task list + task-card-{id} tap + TaskDetailModal + proof submission, admin stat counts, admin/payouts and admin/offerwall-requests review screens. All testIDs used in this run match the spec and work correctly in the web preview.",
+  "rca_of_issue": "N/A — no bugs found. The permission-denied Firestore errors in console are expected and documented in test_credentials.md; the app handles them gracefully with empty states and error toasts."
 }

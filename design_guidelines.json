@@ -1,135 +1,187 @@
 {
-  "project_name": "TaskMint",
-  "theme": "Light",
-  "archetype": "6 (Vibrant Play) infused with premium tactile elements",
-  "core_philosophy": "Ethical gamification. The app must feel rewarding, elastic, and premium. Avoid the 'cheap spammy' look typical of earning apps by using generous spacing, heavy font weights, soft shadows, and high-quality 3D assets.",
+  "app_name": "TaskMint",
+  "personality": "4 Tactile / Playful LIGHT",
+  "personality_one_liner": "An engaging, trustworthy, and modern rewards experience featuring large rounded cards, soft shadows, and clean, playful accents.",
+  "color": {
+    "surface": "#F4F5F9",
+    "onSurface": "#1F2937",
+    "surfaceSecondary": "#FFFFFF",
+    "onSurfaceSecondary": "#111827",
+    "surfaceTertiary": "#F3F4F6",
+    "onSurfaceTertiary": "#374151",
+    "surfaceInverse": "#111827",
+    "onSurfaceInverse": "#FFFFFF",
+    "brand": "#5B5BD6",
+    "brandPrimary": "#0F172A",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#5B5BD6",
+    "onBrandSecondary": "#FFFFFF",
+    "brandTertiary": "#E8E8FA",
+    "onBrandTertiary": "#5B5BD6",
+    "success": "#16A34A",
+    "onSuccess": "#FFFFFF",
+    "warning": "#FFC107",
+    "onWarning": "#451A03",
+    "error": "#EF4444",
+    "onError": "#FFFFFF",
+    "info": "#3B82F6",
+    "onInfo": "#FFFFFF",
+    "border": "#E5E7EB",
+    "borderStrong": "#D1D5DB",
+    "divider": "#F3F4F6",
+    "muted": "#6B7280",
+    "onBrand": "#FFFFFF"
+  },
   "typography": {
-    "font_family_heading": "Plus Jakarta Sans (or similar geometric sans like Poppins/Outfit via expo-fonts)",
-    "font_family_body": "Plus Jakarta Sans",
-    "hierarchy": {
-       "h1": { "fontSize": 32, "fontWeight": "800", "letterSpacing": -0.5, "lineHeight": 40 },
-       "h2": { "fontSize": 24, "fontWeight": "700", "letterSpacing": -0.3, "lineHeight": 32 },
-       "h3": { "fontSize": 20, "fontWeight": "600", "letterSpacing": -0.2, "lineHeight": 28 },
-       "body": { "fontSize": 16, "fontWeight": "500", "letterSpacing": 0, "lineHeight": 24 },
-       "label": { "fontSize": 12, "fontWeight": "800", "letterSpacing": 1.2, "textTransform": "uppercase" }
-    },
-    "alignment": "Strictly left-aligned for data and text. Center alignment is reserved ONLY for empty states and avatars."
-  },
-  "colors": {
-    "background_main": "#F7F9FC",
-    "surface_card": "#FFFFFF",
-    "primary": "#4F46E5",
-    "primary_soft": "rgba(79, 70, 229, 0.1)",
-    "secondary_reward": "#FFC107",
-    "accent_success": "#10B981",
-    "accent_danger": "#FF6B6B",
-    "text_dominant": "#111827",
-    "text_muted": "#6B7280",
-    "border_subtle": "rgba(0,0,0,0.05)",
-    "overlay": "rgba(0,0,0,0.4)"
-  },
-  "spacing_and_layout": {
-    "screen_padding": 24,
-    "card_padding": 20,
-    "gap_sm": 8,
-    "gap_md": 16,
-    "gap_lg": 24,
-    "radii": {
+    "displayFontFamily": "Plus Jakarta Sans",
+    "textFontFamily": "Figtree",
+    "scale": {
       "sm": 12,
-      "md": 16,
-      "lg": 24,
-      "xl": 32,
-      "pill": 999
-    },
-    "shadows": {
-      "soft_ambient": {
-        "shadowColor": "#4F46E5",
-        "shadowOffset": { "width": 0, "height": 12 },
-        "shadowOpacity": 0.08,
-        "shadowRadius": 24,
-        "elevation": 8
-      },
-      "card_ambient": {
-        "shadowColor": "#000000",
-        "shadowOffset": { "width": 0, "height": 4 },
-        "shadowOpacity": 0.04,
-        "shadowRadius": 12,
-        "elevation": 2
-      }
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
     }
   },
-  "components": {
-    "buttons": {
-       "primary": "Background #4F46E5, Text #FFFFFF. Full width, 60px height, 20px border radius. MUST include react-native-reanimated scale reduction (0.95) on press-in for tactile feel.",
-       "secondary": "Background rgba(79, 70, 229, 0.1), Text #4F46E5. 60px height, 20px border radius."
-    },
-    "cards": {
-       "base": "Background #FFFFFF, Border 1px solid rgba(0,0,0,0.04). Card radius 24px. Padding 20px.",
-       "balance_card": "Uses the abstract_gradient image as an ImageBackground. Text inside must be pure white with textShadow for legibility."
-    },
-    "bottom_tabs": {
-       "style": "Floating tab bar (margin horizontal 16, margin bottom 16, rounded pill) or clean bottom borderless bar with shadow. Active tab should have an energetic color tint."
-    },
-    "ads": {
-       "banner_placeholder": "Height 60px. Background #F3F4F6 with subtle diagonal stripes or a dashed border. Label 'Advertisement' in text_muted. Do not make it look broken."
-    }
+  "spacing": {
+    "rule": "Generous padding around cards (lg/xl). Consistent vertical rhythm using flex gaps. Thumb-friendly touch targets with ample safe area clearance.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
   },
-  "screens": {
-     "home": {
-       "header": "Row layout. Left: Avatar and 'Hello, User'. Right: Pill-shaped Balance indicator.",
-       "bento_grid": "Ways to Earn MUST follow the 'Bento' protocol. FlexWrap layout. Daily Check-in = 100% width (Hero). Spin Wheel = 48% width. Scratch Card = 48% width. Surveys & Quizzes = 48% width each. Use gap: 4%.",
-       "campaigns": "High Paying Campaigns: Vertical list of cards. Each card has Logo (left), Title & Note (center flex), and Rupee Value (right, green color)."
-     },
-     "wallet": {
-       "layout": "Large hero gradient balance card at the top. Prominent 'Withdraw to Cash' button. Below: 'Transaction History' as a clean list. Positive points in #10B981, negative in #FF6B6B."
-     },
-     "withdraw": {
-       "layout": "Progressive disclosure. Step 1: Select Method (UPI or Bank). Step 2: Input details. Step 3: Withdraw. Display withdrawal history (Pending/Success) via bottom sheet or list below."
-     },
-     "profile": {
-       "layout": "Centered avatar overlapping the header. 3-column stats card (Points, Tasks, Streak) using grid/flex. Settings/links represented as a list of rows with Lucide icons (chevron-right on right side)."
-     },
-     "tasks_gamified": {
-        "spin_wheel": "Large circle divided into segments. Needs a clear 'SPIN' button. Implement via Reanimated rotate styling.",
-        "scratch_card": "Square canvas. Use a 'scratch to reveal' overlay (can be mocked with an animated fade-out mask if native scratch is complex)."
-     }
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "xl": 24,
+    "pill": 999
   },
-  "motion_guidelines": {
-    "philosophy": "Elasticity creates trust. Buttons should 'squish' like physical rubber. Page transitions should slide smoothly.",
-    "spring_config": "damping: 14, stiffness: 120, mass: 1",
-    "micro_interactions": "Add subtle bounce when balance increases. Add confetti effect (or simple animated particles) on task completion."
-  },
-  "media_assets": {
-    "images": [
-      {
-        "category": "balance_icon",
-        "description": "Gold coin stack for wallet and balance indicators",
-        "url": "https://images.unsplash.com/photo-1673200644249-bd8f6852a10c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzZ8MHwxfHNlYXJjaHwxfHxnb2xkJTIwY29pbiUyMHN0YWNrJTIwd2hpdGUlMjBiYWNrZ3JvdW5kfGVufDB8fHx8MTc3NzM3NTA0MXww&ixlib=rb-4.1.0&q=85"
-      },
-      {
-        "category": "reward_icon",
-        "description": "Premium 3D gift box for daily check-in or bonus items",
-        "url": "https://images.unsplash.com/photo-1671749999622-4087a86868cc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHwyfHxnaWZ0JTIwYm94JTIwcHJlbWl1bSUyMDNkfGVufDB8fHx8MTc3NzM3NTA1Nnww&ixlib=rb-4.1.0&q=85"
-      },
-      {
-        "category": "abstract_gradient",
-        "description": "Vibrant abstract gradient for slider banners and the main wallet balance card background",
-        "url": "https://images.pexels.com/photos/7135024/pexels-photo-7135024.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
-      },
-      {
-        "category": "default_avatar",
-        "description": "Placeholder avatar for the user profile",
-        "url": "https://images.unsplash.com/photo-1704726135027-9c6f034cfa41?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwxfHxhdmF0YXIlMjBwb3J0cmFpdCUyMHByb2ZpbGV8ZW58MHx8fHwxNzc3Mzc1MDU2fDA&ixlib=rb-4.1.0&q=85"
-      }
+  "shadow_tier": "2",
+  "navigation": "bottom_tabs",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": "true",
+    "do's": [
+      "Use subtle glass over brand-tinted backgrounds for floating action buttons or bottom sheet drag handles.",
+      "Apply to bottom tab bar when content scrolls behind it."
+    ],
+    "dont's": [
+      "Do not use glass on main feed task cards or form inputs.",
+      "Avoid heavy blur that affects text readability."
     ]
   },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Login",
+      "purpose": "Onboarding screen emphasizing trust, high payouts, and easy login.",
+      "states": {
+        "loading": "Spinner on primary Continue button.",
+        "empty": "N/A",
+        "error": "Standard alert or inline red text if login fails."
+      },
+      "layout": "Centered logo (two gold coins) at top. Bold 'TaskMint' title and subtitle 'Earn rewards. Get paid. Anytime.' directly below. Main content is a pure white card (radius: xl, shadow 2) containing a 3D rounded gift box image at the top, followed by 3 vertical feature rows. Each row has a brandTertiary (soft lavender) circular icon container and a bold label. Below the card, a sticky brandPrimary (near-black navy) pill button for 'Continue'. Small muted footer text underneath the button."
+    },
+    {
+      "name": "Home",
+      "purpose": "Main feed showcasing rewards points, featured banners, and task offers.",
+      "states": {
+        "loading": "Skeleton loaders for banner and task cards.",
+        "empty": "Illustration of an empty box with 'No tasks available right now' and a 'Refresh' CTA.",
+        "error": "Error message with 'Tap to retry' button."
+      },
+      "layout": "Top Header: Left profile avatar and 'Hello, User889B'. Right: brandTertiary pill with coin icon and point balance. Below header: Full-width rounded sliding banner carousel with pagination dots. Below banner: Segmented toggle with active pill (brandSecondary/indigo, white text, badge) for 'Offerwall' and inactive pill (white, dark text) for 'Play & Earn'. Below toggle: Vertical list of pure white task cards (radius: lg, shadow 2). Each task card contains a rounded square logo on the left, bold title + grey subtitle center, and bold success (green) amount + chevron on the right."
+    },
+    {
+      "name": "Wallet",
+      "purpose": "Manage balance, withdrawals, and transaction history.",
+      "states": {
+        "loading": "Skeleton rows for history.",
+        "empty": "Illustration of empty wallet with 'No transactions yet'.",
+        "error": "Error message with 'Retry' button."
+      },
+      "layout": "Top hero card (surfaceSecondary) displaying large current balance. Below: UPI/Bank sub-tabs (segmented style). Withdraw section: Quick amount chips (₹20/₹30/₹50) horizontally scrollable. Input field for custom amount or UPI ID, followed by a brandPrimary sticky 'Withdraw' button. Bottom section: Transaction & withdrawal history list with status badges (pending/successful/rejected)."
+    },
+    {
+      "name": "Play & Earn",
+      "purpose": "Mini-games and daily check-in to boost retention.",
+      "states": {
+        "loading": "Skeleton for game cards.",
+        "empty": "N/A",
+        "error": "Error fetching games, 'Retry' button."
+      },
+      "layout": "Top: Daily check-in hero card displaying a week progress bar with day bubbles. Below: 2-column game grid (flexWrap: wrap, space-between). Each game card (surfaceSecondary, radius: lg) has a cover image, bold title, and a 'Play' chip."
+    },
+    {
+      "name": "Profile",
+      "purpose": "User settings and legal links.",
+      "states": {
+        "loading": "Spinner overlay.",
+        "empty": "N/A",
+        "error": "Standard error toast."
+      },
+      "layout": "Top profile hero card with large avatar, name, and email. Vertical list of settings rows (Help, Terms, Privacy). Each row uses a brandTertiary tinted circular icon container on the left, title, and right chevron. Version number displayed as muted text at the bottom."
+    },
+    {
+      "name": "Admin Dashboard",
+      "purpose": "Management overview for app operators.",
+      "states": {
+        "loading": "Skeleton stat cards.",
+        "empty": "N/A",
+        "error": "Standard error toast."
+      },
+      "layout": "Grid of stat cards (Total Users, Pending Withdrawals, Active Offers). Below: Manage tabs for Users, Tasks, and Payouts. List view of pending payout requests with Quick Approve/Reject actions."
+    }
+  ],
+  "images": {
+    "login_gift_box": {
+      "url": "https://images.unsplash.com/photo-1674620213535-9b2a2553ef40?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwxfHxnaWZ0JTIwYm94JTIwM2QlMjByZW5kZXJpbmclMjB3aGl0ZSUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzkxMDE4NTc0fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "two black and white boxes with gold bows"
+    },
+    "home_profile_avatar": {
+      "url": "https://images.unsplash.com/photo-1758600435036-0c958b8b9704?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwxfHxjaGVlcmZ1bCUyMHlvdW5nJTIwcGVyc29uJTIwcG9ydHJhaXQlMjBuZXV0cmFsJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3OTEwMTg1NzR8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "A young black woman with curly hair smiles"
+    },
+    "gold_coins_pile": {
+      "url": "https://images.unsplash.com/photo-1624365169106-1f1f4cd65c91?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHwxfHxnb2xkJTIwY29pbiUyMGlsbHVzdHJhdGlvbnxlbnwwfHx8fDE3OTEwMTg1Nzl8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "gold and silver round coins"
+    },
+    "game_controller_banner": {
+      "url": "https://images.unsplash.com/flagged/photo-1580234820596-0876d136e6d5?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHwxfHx2aWRlbyUyMGdhbWUlMjBjb250cm9sbGVyJTIwbW9kZXJuJTIwYmFubmVyfGVufDB8fHx8MTc5MTAxODU3OXww&ixlib=rb-4.1.0&q=85",
+      "alt": "white sony ps 4 controller"
+    }
+  },
   "instructions_to_main_agent": [
-     "This is an Expo React Native App. DO NOT use HTML elements (div, span, class). ALWAYS use React Native components (View, Text, Image, TouchableOpacity, StyleSheet).",
-     "ALWAYS use `testID` prop on all interactive elements (buttons, inputs, cards) to fulfill the testing data-testid requirement.",
-     "Use `react-native-reanimated` for motion (button press squish, wheel spin, staggered entrances).",
-     "Use `lucide-react-native` for icons.",
-     "The Admin Panel must be integrated within the app routing (e.g., accessed via a specific hidden flow or login check matching '93altaff@gmail.com').",
-     "Implement bottom navigation tabs using `expo-router`.",
-     "Apply generous paddings (24px) and large border radii (24px) to avoid the 'cheap UI' feel. Strict adherence to layout bento rules."
-  ]
+    "Adhere strictly to the color token assignments: use brandPrimary (#0F172A) for primary bold titles and the main 'Continue' button to maintain the premium dark-navy contrast requested.",
+    "Ensure brandSecondary (#5B5BD6) is used specifically for the active segmented toggle and points/coins pill to match the indigo/purple accent instructions.",
+    "For the task cards and feature rows, apply the brandTertiary (#E8E8FA) background to circular icon containers to achieve the soft lavender effect requested.",
+    "Follow the explicit radius requirements: Cards should have ~20-24px rounded corners (use radius_tokens.xl or lg) to match the tactile/playful but structured vibe.",
+    "Do NOT use pure white backgrounds for the entire screen. Set the main screen background to surface (#F4F5F9) and use surfaceSecondary (#FFFFFF) purely for cards to create depth via shadow_tier 2.",
+    "In the Home screen, ensure the reward amounts are colored with the 'success' (#16A34A) token, and use the 'warning' (#FFC107) token for gold coin accents.",
+    "Implement the 'Continue' and 'Withdraw' buttons as sticky, full-width pill buttons anchored to the bottom using KeyboardAvoidingView, avoiding overlap with scrollable content.",
+    "Ensure all components (including Segmented toggles and Banner Carousels) are built fully natively with React Native/Expo primitives and not web-like HTML/CSS.",
+    "Avoid using any banned colors (e.g., standard Material indigo, blue, red/orange) except for the EXACT explicitly requested #5B5BD6 indigo/purple accent token."
+  ],
+  "haptics": {
+    "primary_button_press": "impactLight",
+    "segmented_toggle_switch": "selection",
+    "task_card_press": "impactLight",
+    "daily_check_in": "notificationSuccess",
+    "withdraw_submit": "impactMedium"
+  }
 }

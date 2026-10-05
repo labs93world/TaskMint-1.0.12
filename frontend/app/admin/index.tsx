@@ -1,200 +1,164 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
+
+import { makeStyles, useTheme } from "@/src/theme";
+import { Icon, IconName } from "@/src/components/ui/Icon";
+import { Segmented } from "@/src/components/ui/Segmented";
+import { BannersManager } from "@/src/components/admin/BannersManager";
+import { OfferwallsManager } from "@/src/components/admin/OfferwallsManager";
+import { ForceUpdateManager } from "@/src/components/admin/ForceUpdateManager";
 import {
-  ChevronLeft, Image as ImageIcon, Megaphone, Wallet, LinkIcon, ChevronRight, Shield,
-  Users as UsersIcon, ListChecks, IndianRupee, Globe, Gift, Smartphone, RefreshCw,
-  Megaphone as AdsIcon, Sliders, LayoutGrid, Gamepad2, Wrench,
-} from "lucide-react-native";
-import { useAuth } from "../../src/context/AuthContext";
-import { theme } from "../../src/lib/theme";
-import { api } from "../../src/lib/api";
+  adminPayouts,
+  adminSubmissions,
+  countActiveToday,
+  countUsers,
+} from "@/src/lib/firestore";
 
-type Stats = {
-  users: number; pending_withdrawals: number; successful_withdrawals: number;
-  active_today: number; pending_campaigns: number;
-};
-
-export default function AdminHome() {
+export default function Admin() {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user } = useAuth();
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [manageTab, setManageTab] = useState("banners");
 
-  const loadStats = React.useCallback(() => {
-    setRefreshing(true);
-    api<Stats>("/admin/stats")
-      .then(setStats)
-      .catch(() => {})
-      .finally(() => setRefreshing(false));
-  }, []);
+  const usersQ = useQuery({ queryKey: ["count-users"], queryFn: countUsers });
+  const activeQ = useQuery({ queryKey: ["count-active"], queryFn: countActiveToday });
+  const payoutQ = useQuery({
+    queryKey: ["count-payout-pending"],
+    queryFn: async () => (await adminPayouts("pending")).length,
+  });
+  const offerQ = useQuery({
+    queryKey: ["count-offer-pending"],
+    queryFn: async () => (await adminSubmissions("pending")).length,
+  });
 
-  useEffect(() => {
-    if (!user) return;
-    if (!user.is_admin) {
-      router.replace("/(tabs)/home");
-      return;
-    }
-    loadStats();
-  }, [user, router, loadStats]);
-
-  if (!user?.is_admin) return null;
+  const stats: {
+    key: string;
+    label: string;
+    icon: IconName;
+    value: number | undefined;
+    color: string;
+    onPress?: () => void;
+  }[] = [
+    { key: "users", label: "Users", icon: "user", value: usersQ.data, color: colors.brand },
+    { key: "active", label: "Active Today", icon: "sparkle", value: activeQ.data, color: colors.success },
+    {
+      key: "payout",
+      label: "Payouts",
+      icon: "wallet",
+      value: payoutQ.data,
+      color: colors.warning,
+      onPress: () => router.push("/admin/payouts"),
+    },
+    {
+      key: "offerwall",
+      label: "Offerwall",
+      icon: "clipboard",
+      value: offerQ.data,
+      color: colors.info,
+      onPress: () => router.push("/admin/offerwall-requests"),
+    },
+  ];
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} testID="back-btn">
-          <ChevronLeft size={26} color={theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Admin Panel</Text>
-        <TouchableOpacity onPress={loadStats} testID="admin-refresh" style={styles.refreshIcon}>
-          <RefreshCw size={20} color={refreshing ? theme.colors.muted : theme.colors.primary} />
-        </TouchableOpacity>
+    <View style={styles.screen}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back} testID="admin-back">
+          <Icon name="arrow-left" size={22} color={colors.onSurface} weight="bold" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Admin Panel</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
-        <Text style={styles.welcome}>Welcome, {user.name}</Text>
-
+      <ScrollView
+        contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.section}>Dashboard</Text>
         <View style={styles.statsRow}>
-          <Stat label="Users" value={stats?.users ?? "—"}
-            onPress={() => router.push("/admin/users")} testID="stat-users" />
-          <Stat label="Active today" value={stats?.active_today ?? "—"} color={theme.colors.success}
-            onPress={() => router.push({ pathname: "/admin/users", params: { active: "1" } } as any)} testID="stat-active" />
-          <Stat label="Pending WD" value={stats?.pending_withdrawals ?? "—"} color={theme.colors.secondary}
-            onPress={() => router.push("/admin/withdrawals")} testID="stat-pending-wd" />
-        </View>
-        <View style={styles.statsRow}>
-          <Stat label="Paid WD" value={stats?.successful_withdrawals ?? "—"} color={theme.colors.success}
-            onPress={() => router.push("/admin/withdrawals")} testID="stat-paid-wd" />
-          <Stat label="Pending Tasks" value={stats?.pending_campaigns ?? "—"} color={theme.colors.secondary}
-            onPress={() => router.push("/admin/campaign-completions")} testID="stat-pending-tasks" />
-          <Stat label="" value="" />
+          {stats.map((s) => {
+            const Wrapper: any = s.onPress ? Pressable : View;
+            return (
+              <Wrapper
+                key={s.key}
+                testID={`stat-${s.key}`}
+                onPress={s.onPress}
+                style={styles.statCard}
+              >
+                <View style={[styles.statIcon, { backgroundColor: s.color + "1A" }]}>
+                  <Icon name={s.icon} size={18} color={s.color} weight="fill" />
+                </View>
+                <Text style={styles.statValue} numberOfLines={1}>
+                  {s.value ?? "—"}
+                </Text>
+                <Text style={styles.statLabel} numberOfLines={1}>
+                  {s.label}
+                </Text>
+              </Wrapper>
+            );
+          })}
         </View>
 
-        <Text style={styles.section}>MANAGE</Text>
-        <Tile icon={<UsersIcon size={20} color={theme.colors.primary} />} label="Users"
-          sub="Search, view & adjust points" onPress={() => router.push("/admin/users")}
-          testID="admin-users" />
-        <Tile icon={<ListChecks size={20} color={theme.colors.primary} />} label="Campaign Tasks"
-          sub="Approve / reject pending tasks" onPress={() => router.push("/admin/campaign-completions")}
-          testID="admin-completions" />
-        <Tile icon={<Wallet size={20} color={theme.colors.primary} />} label="Withdrawals"
-          sub="Approve / reject requests" onPress={() => router.push("/admin/withdrawals")}
-          testID="admin-withdrawals" />
-        <Tile icon={<IndianRupee size={20} color={theme.colors.primary} />} label="Withdraw Amounts"
-          sub="Edit amount selection chips" onPress={() => router.push("/admin/withdraw-settings")}
-          testID="admin-withdraw-settings" />
-        <Tile icon={<Gift size={20} color={theme.colors.primary} />} label="Referral Rewards"
-          sub="Tiers, sharing text & milestone bonuses" onPress={() => router.push("/admin/referral-settings")}
-          testID="admin-referral-settings" />
-        <Tile icon={<Smartphone size={20} color={theme.colors.primary} />} label="App Version"
-          sub="Force update + Play Store URL" onPress={() => router.push("/admin/version")}
-          testID="admin-version" />
-        <Tile icon={<AdsIcon size={20} color={theme.colors.primary} />} label="AdMob Settings"
-          sub="Banner, Interstitial, Rewarded & Native unit IDs" onPress={() => router.push("/admin/admob")}
-          testID="admin-admob" />
-        <Tile icon={<Sliders size={20} color={theme.colors.primary} />} label="App Config"
-          sub="Exchange ratio, min withdrawals, task rewards, check-in, referral mode"
-          onPress={() => router.push("/admin/settings")} testID="admin-settings" />
-        <Tile icon={<Gamepad2 size={20} color={theme.colors.primary} />} label="Game Rewards"
-          sub="Higher-Lower streak tiers, Memory, TTT, Math, Tap Rush, Trivia"
-          onPress={() => router.push("/admin/game-rewards")} testID="admin-game-rewards" />
-        <Tile icon={<Megaphone size={20} color={theme.colors.primary} />} label="Game Ads"
-          sub="Set ad type & how often ads show per game"
-          onPress={() => router.push("/admin/game-ads")} testID="admin-game-ads" />
-        <Tile icon={<Wrench size={20} color={theme.colors.primary} />} label="Maintenance"
-          sub="Toggle Coming Soon per tab / task / game / wallet screen"
-          onPress={() => router.push("/admin/maintenance")} testID="admin-maintenance" />
-        <Tile icon={<ImageIcon size={20} color={theme.colors.primary} />} label="Banners"
-          sub="Sliding banners on home" onPress={() => router.push("/admin/banners")}
-          testID="admin-banners" />
-        <Tile icon={<Megaphone size={20} color={theme.colors.primary} />} label="Offerwall"
-          sub="High paying offers (logo, link, category, difficulty)" onPress={() => router.push("/admin/campaigns")}
-          testID="admin-campaigns" />
-        <Tile icon={<Globe size={20} color={theme.colors.primary} />} label="Visit Sites"
-          sub="Add websites for Visit & Earn" onPress={() => router.push("/admin/visit-sites")}
-          testID="admin-visit-sites" />
-        <Tile icon={<LinkIcon size={20} color={theme.colors.primary} />} label="Channel Links"
-          sub="Telegram, Contact, Support, Privacy, Terms" onPress={() => router.push("/admin/links")}
-          testID="admin-links" />
-        <Tile icon={<LayoutGrid size={20} color={theme.colors.primary} />} label="Profile Buttons"
-          sub="Customise Quick Access buttons on the Profile tab"
-          onPress={() => router.push("/admin/profile-buttons")} testID="admin-profile-buttons" />
-        <Tile icon={<Gamepad2 size={20} color={theme.colors.primary} />} label="Earn Cards"
-          sub="Reorder, hide, or relabel the cards shown on Earn tab"
-          onPress={() => router.push("/admin/earn-cards")} testID="admin-earn-cards" />
+        <Text style={styles.section}>Manage</Text>
+        <Segmented
+          testID="manage-tabs"
+          value={manageTab}
+          onChange={setManageTab}
+          options={[
+            { key: "banners", label: "Banners" },
+            { key: "offerwalls", label: "Offerwalls" },
+            { key: "force", label: "Update" },
+          ]}
+        />
+        <View style={{ marginTop: 18 }}>
+          {manageTab === "banners" && <BannersManager />}
+          {manageTab === "offerwalls" && <OfferwallsManager />}
+          {manageTab === "force" && <ForceUpdateManager />}
+        </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
-function Stat({ label, value, color, onPress, testID }: { label: string; value: any; color?: string; onPress?: () => void; testID?: string }) {
-  if (!label) {
-    return <View style={[styles.stat, { opacity: 0 }]} />;
-  }
-  const inner = (
-    <>
-      <Text style={[styles.statValue, color ? { color } : null]}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </>
-  );
-  if (onPress) {
-    return (
-      <TouchableOpacity style={styles.stat} onPress={onPress} testID={testID} activeOpacity={0.75}>
-        {inner}
-      </TouchableOpacity>
-    );
-  }
-  return <View style={styles.stat}>{inner}</View>;
-}
-
-function Tile({ icon, label, sub, onPress, testID }: any) {
-  return (
-    <TouchableOpacity onPress={onPress} style={styles.tile} testID={testID} activeOpacity={0.85}>
-      <View style={styles.tileIcon}>{icon}</View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.tileLabel}>{label}</Text>
-        <Text style={styles.tileSub}>{sub}</Text>
-      </View>
-      <ChevronRight size={18} color={theme.colors.muted} />
-    </TouchableOpacity>
-  );
-}
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: theme.colors.bg },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.surface },
   header: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    padding: theme.spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: c.divider,
   },
-  title: { fontSize: 18, fontWeight: "800", color: theme.colors.text },
-  refreshIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  body: { padding: theme.spacing.lg },
-  welcome: { color: theme.colors.muted, fontSize: 14, marginBottom: 12 },
-  statsRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
-  stat: {
-    flex: 1, backgroundColor: theme.colors.surface,
-    borderRadius: theme.radii.lg, padding: theme.spacing.md, alignItems: "center",
-    borderWidth: 1, borderColor: theme.colors.border,
+  back: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  headerTitle: { fontSize: 18, fontWeight: "800", color: c.onSurface },
+  section: { fontSize: 18, fontWeight: "800", color: c.onSurface, marginTop: 20, marginBottom: 14 },
+  statsRow: { flexDirection: "row", gap: 8 },
+  statCard: {
+    flex: 1,
+    backgroundColor: c.surfaceSecondary,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    gap: 6,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
   },
-  statValue: { fontSize: 22, fontWeight: "800", color: theme.colors.text },
-  statLabel: { fontSize: 10, color: theme.colors.muted, marginTop: 2, fontWeight: "700", letterSpacing: 1 },
-  section: {
-    fontSize: 11, fontWeight: "800", color: theme.colors.muted,
-    letterSpacing: 1.4, marginTop: theme.spacing.md, marginBottom: 12,
+  statIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  tile: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    backgroundColor: theme.colors.surface, padding: theme.spacing.md,
-    borderRadius: theme.radii.lg, borderWidth: 1, borderColor: theme.colors.border,
-    marginBottom: 12,
-  },
-  tileIcon: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: theme.colors.primarySoft,
-    alignItems: "center", justifyContent: "center",
-  },
-  tileLabel: { fontSize: 15, fontWeight: "800", color: theme.colors.text },
-  tileSub: { fontSize: 12, color: theme.colors.muted, marginTop: 2 },
-});
+  statValue: { fontSize: 20, fontWeight: "800", color: c.onSurfaceSecondary },
+  statLabel: { fontSize: 11, color: c.muted, fontWeight: "700", textAlign: "center" },
+}));
