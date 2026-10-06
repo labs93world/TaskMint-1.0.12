@@ -1,0 +1,28 @@
+{
+  "summary": "Verified the react-native-google-mobile-ads v17 EAS build fix (root-level app.json key). ALL 5 requested checks PASS: (1) /app/frontend/app.json is valid JSON and contains BOTH the root-level 'react-native-google-mobile-ads' object (android_app_id + ios_app_id = ca-app-pub-7744865309171344~1346257321) AND the expo.plugins entry — both required, both present. (2) Ran 'npx expo prebuild --platform android --no-install' in a temp copy (/tmp/prebuild_test, symlinked node_modules+assets, /app/frontend untouched): EXIT_CODE=0, prebuild finished successfully, and generated android/app/src/main/AndroidManifest.xml contains meta-data com.google.android.gms.ads.APPLICATION_ID with the correct app ID plus OPTIMIZE_AD_LOADING/OPTIMIZE_INITIALIZATION flags. (3) Simulated the library's android/app-json.gradle resolution (walk up max 3 parents from generated android/ dir → find app.json → parse → check root key): googleMobileAdsJson WOULD NOW BE SET with raw config, android_sdk defaults to 'classic' — the exact MissingPropertyException code path (build.gradle ~line 121-123 reading rootProject.ext.googleMobileAdsJson) is resolved. Also confirmed the gradle fallback-branch typo (sets 'googleAdsJson' instead of 'googleMobileAdsJson') exists in node_modules RNGMA v17.2.0, validating the original RCA. (4) REGRESSION: web preview (https://taskmint-dev.preview.emergentagent.com) renders onboarding screen correctly, 0 console errors, 0 page errors, no red screen; backend GET /api/ returns 200 {'message':'Hello World'}. (5) Only app.json changed (git diff: +4 lines, JSON only) — JSON validity check suffices, no ESLint needed. /app/frontend confirmed unmodified by prebuild (no android/ios dirs generated in repo).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/test_reports/screenshots/regression_home.png", "/tmp/prebuild_test/prebuild2.log", "/tmp/prebuild_test/android/app/src/main/AndroidManifest.xml"],
+  "action_items": [
+    "Fix verified — trigger a new EAS production build; the RUN_GRADLEW MissingPropertyException ('googleMobileAdsJson' on extra properties extension) and the cascade ':react-native-google-mobile-ads does not specify compileSdk' error should both be resolved.",
+    "Note: expo prebuild emits a harmless warning 'Root-level expo object found. Ignoring extra key in Expo config: react-native-google-mobile-ads' — this is expected; Expo CLI ignores the extra key but the RNGMA gradle script reads the raw app.json file, so both keys must stay.",
+    "Do NOT remove either the root-level key or the expo.plugins entry — the gradle build needs the root key, and the manifest meta-data (APPLICATION_ID) injection comes from the config plugin."
+  ],
+  "critical_code_review_comments": [
+    "app.json root key uses snake_case (android_app_id/ios_app_id) matching app-json.gradle getStringValue keys, while the expo.plugins entry uses camelCase (androidAppId/iosAppId) matching the config plugin — both conventions are correct per RNGMA v17 docs.",
+    "src/ads/index.ts correctly wraps the native module require in try/catch so web preview/Expo Go no-op safely — verified 0 console errors on web.",
+    "Ad unit IDs in src/constants/ads.ts use the correct '/' (ad unit) format vs app ID '~' format; consistent with app.json values."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A (frontend-only; /api/ smoke check 200)", "frontend": "100% (5/5 verification checks PASS)" },
+  "seed_data_creation": "None. Temp prebuild copy at /tmp/prebuild_test (symlinked node_modules/assets; /app/frontend not modified).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "The EAS build fix is verified locally as far as possible without running a full gradle build. Prebuild log at /tmp/prebuild_test/prebuild2.log. If the EAS build still fails, next suspects would be settings.gradle plugin management or RNGMA RNGMA_ANDROID_BACKEND property — but the app-json.gradle path (the reported failure) is definitively fixed. NOTE: frontend/.env uses EXPO_PUBLIC_BACKEND_URL (not EXPO_BACKEND_URL) = https://taskmint-dev.preview.emergentagent.com.",
+  "rca_of_issue": "ROOT CAUSE (confirmed): RNGMA v17.2.0 android/app-json.gradle walks up max 3 parent dirs from the gradle rootProject to find app.json, parses it, and only sets rootProject.ext.googleMobileAdsJson when a ROOT-LEVEL 'react-native-google-mobile-ads' key exists. The repo previously had only the expo.plugins entry, so gradle took the 'file found, no root key' branch which contains an upstream typo setting 'rootProject.ext.googleAdsJson = false' (wrong name). build.gradle line ~121 then read rootProject.ext.googleMobileAdsJson → MissingPropertyException, and the ':react-native-google-mobile-ads does not specify compileSdk' cascade followed because project evaluation aborted before SDK values were set. FIX: root-level key with android_app_id/ios_app_id added to app.json — verified via direct JSON parse, gradle-logic simulation, and a successful expo prebuild producing AndroidManifest.xml with com.google.android.gms.ads.APPLICATION_ID meta-data."
+}
