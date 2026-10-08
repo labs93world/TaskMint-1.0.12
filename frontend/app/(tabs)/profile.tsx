@@ -120,7 +120,6 @@ export default function Profile() {
           placeholder="Type here..."
           placeholderTextColor={colors.muted}
           style={styles.keyInput}
-          secureTextEntry
           autoCapitalize="none"
         />
         <Button label="Send" testID="admin-key-submit" onPress={checkKey} style={{ marginTop: 16 }} />

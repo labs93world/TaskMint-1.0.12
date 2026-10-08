@@ -1,0 +1,26 @@
+{
+  "summary": "Verified deployment-config bug fix (gitignore env exclusion + missing yarn.lock) plus full lightweight regression - ALL PASS. CONFIG: /app/frontend/.env, /app/backend/.env and /app/frontend/yarn.lock (343KB) all exist AND are tracked in git (git ls-files confirms all three); /app/.gitignore contains NO '.env', '.env.*' or '*.env' ignore patterns; git status clean (only untracked .emergent/cron/ which is environment-internal). BACKEND: GET https://taskmint-import-3.preview.emergentagent.com/api/ returns HTTP 200 {'message':'Hello World'}; all supervisor services RUNNING (backend, expo, mongodb, nginx-code-proxy). FRONTEND REGRESSION at preview URL: onboarding (login-continue-button -> details name/mobile -> details-submit-button -> welcome-claim-button, 1,000 pts credited) works; Home tab renders home-points + offerwall segment (home-segmented-offerwall) with 2 live Firestore task cards; tapping task-card opens task-detail-modal showing ONLY 'Start task' button (task-start-button visible; zero 'task-open-link' elements and zero 'Open task link' text - confirmed at runtime AND in TaskDetailModal.tsx code lines 86-95); Wallet tab renders wallet-balance (= Rs.1, matches 1,000 pts welcome bonus); Profile tab renders profile-version; long-press (~1s) on version text opens admin-key-modal ('How are you doing?'), typed 'HelloVisible123' - input type attribute is null (no secureTextEntry), screenshot confirms characters fully visible as plain text. No deprecated Expo packages (expo-av, expo-barcode-scanner, expo-background-fetch) in package.json. No console errors during run. No regressions introduced by the config fix.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "None - config fix verified correct and zero regressions found. Deployment-agent flags about Firebase/Firestore as datastore are BY DESIGN (user's production app) - not reported as bugs per instructions."
+  ],
+  "critical_code_review_comments": [
+    "TaskDetailModal.tsx:86-95 - only task-start-button / task-submit-button / task-proof-input remain; no 'Open task link' CTA present. Start-task already calls Linking.openURL(task.taskUrl) internally so no functionality lost.",
+    "Config fix confirmed correct: env files committed and gitignore clean - the git-based deployment snapshot will now include frontend/.env and backend/.env, and yarn.lock enables --frozen-lockfile release builds.",
+    "Test artifact note: task-detail Popup has no testID'd close button and Escape does not dismiss it on web - if future testers click tabs while the modal is open, clicks are intercepted. Not a user-facing bug (real users tap the X or backdrop), just a test-automation observation."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (health endpoint 200, services RUNNING)", "frontend": "100% (onboarding, Home, offerwall modal, Wallet, Profile, admin popup all verified)"},
+  "seed_data_creation": "Onboarded two fresh device-local users via UI (TestRegress/9000000001 and WalletTest/9000000002) - browser-local only, no Firestore data created or modified. Used existing 2 live Firestore offerwall tasks for modal verification.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All deployment-config fixes verified: env files + yarn.lock tracked in git, gitignore clean of env patterns, backend /api healthy, full UI regression passed. Flow notes (unchanged from iteration_3): offerwall tasks behind home-segmented-offerwall segment, cards are task-card-<firestoreId>; admin popup = long-press profile-version (~1s mouse down), key TaskMint000 case-sensitive; task-detail Popup has no testID close button - press the X via coordinates or reload if modal blocks tabs. Ads/push no-op on web preview BY DESIGN. Firebase datastore BY DESIGN - do not flag.",
+  "rca_of_issue": "N/A - no bugs found. The previous deployment failure root causes (.gitignore excluding env files from git snapshot, missing yarn.lock) are confirmed fixed at the source: patterns removed, all three files committed, app fully functional."
+}

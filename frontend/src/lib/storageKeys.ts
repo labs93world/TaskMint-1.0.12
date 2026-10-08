@@ -12,4 +12,10 @@ export const KEYS = {
   claimCount: "tm_claim_count", // number, for interstitial cadence
   creditedSubs: "tm_credited_subs", // string[] submission ids already credited
   refundedPayouts: "tm_refunded_payouts", // string[] payout ids already refunded
+  welcomeShown: "tm_welcome_shown", // boolean, first-open ₹1 welcome bonus
+  dailyReminder: "tm_daily_reminder", // boolean, local daily reminder scheduled
+  notifiedPayouts: "tm_notified_payouts", // string[] "payoutId:status" already notified
+  notifiedSubs: "tm_notified_subs", // string[] submission ids already notified (approved)
+  seenTasks: "tm_seen_tasks", // string[] task ids already seen (new-task alerts)
+  pushToken: "tm_push_token", // last FCM device token saved to Firestore (dedup)
 } as const;

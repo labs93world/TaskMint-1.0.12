@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,8 +24,14 @@ export default function Admin() {
   const router = useRouter();
   const qc = useQueryClient();
   const [manageTab, setManageTab] = useState("banners");
+  const [refreshing, setRefreshing] = useState(false);
 
-  const onRefresh = () => qc.invalidateQueries();
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await qc.invalidateQueries();
+    // allow the spinner to be visible briefly
+    setTimeout(() => setRefreshing(false), 600);
+  };
 
   const usersQ = useQuery({ queryKey: ["count-users"], queryFn: countUsers });
   const activeQ = useQuery({ queryKey: ["count-active"], queryFn: countActiveToday });
@@ -69,23 +75,29 @@ export default function Admin() {
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.headerSide}>
-          <Pressable onPress={() => router.back()} hitSlop={10} style={styles.iconBtn} testID="admin-back">
-            <Icon name="arrow-left" size={22} color={colors.onSurface} weight="bold" />
-          </Pressable>
-          <Pressable onPress={onRefresh} hitSlop={10} style={styles.iconBtn} testID="admin-refresh">
-            <Icon name="refresh" size={21} color={colors.brand} weight="bold" />
-          </Pressable>
-        </View>
+        <Pressable
+          onPress={onRefresh}
+          hitSlop={10}
+          style={styles.headerBtn}
+          testID="admin-refresh"
+        >
+          {refreshing ? (
+            <ActivityIndicator size="small" color={colors.brand} />
+          ) : (
+            <Icon name="refresh" size={22} color={colors.brand} weight="bold" />
+          )}
+        </Pressable>
         <Text style={styles.headerTitle}>Admin Panel</Text>
-        <View style={{ width: 40 }} />
+        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.headerBtn} testID="admin-back">
+          <Icon name="x" size={22} color={colors.onSurface} weight="bold" />
+        </Pressable>
       </View>
 
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.statsRow}>
+        <View style={[styles.statsRow, { marginTop: 8 }]}>
           {stats.map((s) => {
             const Wrapper: any = s.onPress ? Pressable : View;
             return (
@@ -109,7 +121,7 @@ export default function Admin() {
           })}
         </View>
 
-        <View style={{ height: 22 }} />
+        <View style={{ marginTop: 24 }} />
         <Segmented
           testID="manage-tabs"
           value={manageTab}
@@ -141,8 +153,8 @@ const useStyles = makeStyles((c) => ({
     borderBottomWidth: 1,
     borderBottomColor: c.divider,
   },
-  headerSide: { flexDirection: "row", alignItems: "center", gap: 2 },
-  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  back: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  headerBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 18, fontWeight: "800", color: c.onSurface },
   section: { fontSize: 18, fontWeight: "800", color: c.onSurface, marginTop: 20, marginBottom: 14 },
   statsRow: { flexDirection: "row", gap: 8 },

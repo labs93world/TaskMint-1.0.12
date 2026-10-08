@@ -1,0 +1,26 @@
+{
+  "summary": "Retested GameShell double-tap guard fix (useRef `gettingRef`). Onboarded via login-continue -> details form (Altaf Ansari / 9876543210 / 1234) -> closed welcome popup -> opened 'Higher Lower' game (first game card). Verified initial chances=0. Performed a rapid synchronous burst of 5 clicks on [data-testid=game-get-chances] via JS el.click() in a tight loop (truly synchronous, same tick, before any React re-render) -> chances increased from 0 to 5 (delta=+5 EXACTLY ONE TIME, not +10/+15/+25). Then a deliberate slower single tap after the first ad resolved -> chances went 5 -> 10 (delta=+5). Fix confirmed working. The synchronous useRef guard correctly ignores rapid duplicate taps while still allowing a subsequent deliberate tap after completion.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "Animated/useNativeDriver", "issue": "Console warning: 'Animated: useNativeDriver is not supported because the native animated module is missing. Falling back to JS-based animation.' Expected on web preview but worth noting."},
+      {"component": "shadow* style props", "issue": "Console warning: '\"shadow*\" style props are deprecated. Use \"boxShadow\".' Non-blocking, consider migrating."},
+      {"component": "props.pointerEvents", "issue": "Console warning: 'props.pointerEvents is deprecated. Use style.pointerEvents'. Non-blocking."}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "GameShell.tsx: gettingRef synchronous guard pattern is correct. Both ref (synchronous) and state (UI loading indicator) are used appropriately. Fix is well-implemented."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A (frontend-only)", "frontend": "100%" },
+  "seed_data_creation": "Created test user via onboarding: Altaf Ansari / 9876543210 / 1234 (stored client-side via storage).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Onboarding flow: tap [data-testid=login-continue-button] -> type into details-name-input / details-mobile-input / details-password-input (use keyboard.type, NOT elementHandle.fill — RN Web TextInput only updates onChangeText via keystroke events) -> tap [data-testid=details-submit-button] -> close welcome popup (text 'Let\\'s go' or [data-testid=popup-close]/welcome-claim-button). Home screen already shows game cards; first game card is [data-testid=game-card-higher-lower]. GameShell adds chances via +CHANCES_PER_AD(5) per rewarded ad; web adGate resolves instantly.",
+  "rca_of_issue": "Original (iteration 6) bug: web adGate.showAd resolved synchronously, so two rapid onPress calls both passed the `if (loadingAd) return;` state-based guard (state had not yet re-rendered) -> +10. Fix: `gettingRef = useRef(false)` is set true synchronously at the start of getChances and reset in finally; the guard reads the ref, which is updated immediately in the same tick. Verified via 5 synchronous el.click() calls in one JS task -> only one increment of +5 applied."
+}

@@ -11,7 +11,7 @@ import { KEYS } from "@/src/lib/storageKeys";
 import { istDayKey } from "@/src/utils/time";
 import { useUser } from "@/src/context/UserContext";
 import { useToast } from "@/src/components/ui/Toast";
-import { showRewardedInterstitial } from "@/src/ads";
+import { useAdGate } from "@/src/components/ui/AdGate";
 
 // Reward grows by 50 every day, cycling over 20 days: day 1 = 100 ... day 20 = 1050,
 // then day 21 restarts at 100. Streak only resets if a day is missed.
@@ -23,6 +23,7 @@ export function PlayEarn() {
   const router = useRouter();
   const { addPoints } = useUser();
   const toast = useToast();
+  const adGate = useAdGate();
   const [checkin, setCheckin] = useState<{ lastDate: string; streak: number }>({ lastDate: "", streak: 0 });
   const [claiming, setClaiming] = useState(false);
 
@@ -56,59 +57,60 @@ export function PlayEarn() {
     await addPoints(reward, "Daily check-in");
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     toast.show(`+${reward} points claimed!`, "success");
-    showRewardedInterstitial();
+    // Rewarded-interstitial via the Ad Gate (non-dismissable loader, 3s cooldown).
+    await adGate.showAd("rewardedInterstitial", 3000);
     setClaiming(false);
   };
 
   return (
     <View>
-      {/* Daily check-in hero */}
-      <View style={styles.hero}>
-        <View style={styles.heroTop}>
-          <View style={styles.heroIcon}>
-            <Icon name="gift" size={24} color={colors.onBrandSecondary} weight="fill" />
+      {/* Daily check-in hero — hidden once today's reward is claimed */}
+      {!claimedToday && (
+        <View style={styles.hero}>
+          <View style={styles.heroTop}>
+            <View style={styles.heroIcon}>
+              <Icon name="gift" size={24} color={colors.onBrandSecondary} weight="fill" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.heroTitle}>Daily Check-in</Text>
+              <Text style={styles.heroSub}>
+                {checkin.streak > 0 ? `${checkin.streak} day streak` : "Start your streak today"}
+              </Text>
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.heroTitle}>Daily Check-in</Text>
-            <Text style={styles.heroSub}>
-              {checkin.streak > 0 ? `${checkin.streak} day streak` : "Start your streak today"}
-            </Text>
-          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingRight: 4 }}
+            style={{ marginTop: 18 }}
+          >
+            {Array.from({ length: 20 }).map((_, i) => {
+              const pos = i + 1;
+              const cyclePos = ((Math.max(1, nextDay) - 1) % 20) + 1;
+              const claimed = claimedToday ? pos <= cyclePos : pos < cyclePos;
+              const isNext = !claimedToday && pos === cyclePos;
+              return (
+                <View key={i} style={[styles.dayBubble, claimed && styles.dayBubbleActive, isNext && styles.dayBubbleNext]}>
+                  <Text style={[styles.dayText, (claimed || isNext) && styles.dayTextActive]}>{rewardForDay(pos)}</Text>
+                </View>
+              );
+            })}
+          </ScrollView>
+
+          <Pressable
+            testID="daily-checkin-button"
+            disabled={claiming}
+            onPress={claim}
+            style={styles.claimBtn}
+          >
+            <Text style={styles.claimText}>{`Claim +${nextReward} points`}</Text>
+          </Pressable>
         </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, paddingRight: 4 }}
-          style={{ marginTop: 18 }}
-        >
-          {Array.from({ length: 20 }).map((_, i) => {
-            const pos = i + 1;
-            const cyclePos = ((Math.max(1, nextDay) - 1) % 20) + 1;
-            const claimed = claimedToday ? pos <= cyclePos : pos < cyclePos;
-            const isNext = !claimedToday && pos === cyclePos;
-            return (
-              <View key={i} style={[styles.dayBubble, claimed && styles.dayBubbleActive, isNext && styles.dayBubbleNext]}>
-                <Text style={[styles.dayText, (claimed || isNext) && styles.dayTextActive]}>{rewardForDay(pos)}</Text>
-              </View>
-            );
-          })}
-        </ScrollView>
-
-        <Pressable
-          testID="daily-checkin-button"
-          disabled={claimedToday}
-          onPress={claim}
-          style={[styles.claimBtn, claimedToday && styles.claimBtnDone]}
-        >
-          <Text style={styles.claimText}>
-            {claimedToday ? "Claimed today ✓" : `Claim +${nextReward} points`}
-          </Text>
-        </Pressable>
-      </View>
+      )}
 
       {/* Games grid */}
-      <View style={styles.grid}>
+      <View style={[styles.grid, { marginTop: claimedToday ? 4 : 22 }]}>
         {GAMES.map((g) => (
           <Pressable
             key={g.id}
@@ -122,8 +124,24 @@ export function PlayEarn() {
             <View style={styles.gameIcon}>
               <Icon name={g.icon} size={28} color={colors.brand} weight="fill" />
             </View>
-            <Text style={styles.gameTitle}>{g.title}</Text>
-            <Text style={styles.gameSub}>{g.subtitle}</Text>
+            <Text
+              style={styles.gameTitle}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+              allowFontScaling={false}
+            >
+              {g.title}
+            </Text>
+            <Text
+              style={styles.gameSub}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+              allowFontScaling={false}
+            >
+              {g.subtitle}
+            </Text>
             <View style={styles.playChip}>
               <Text style={styles.playText}>Win 10k+ pts</Text>
             </View>
@@ -157,7 +175,7 @@ const useStyles = makeStyles((c) => ({
   claimBtnDone: { backgroundColor: "rgba(255,255,255,0.15)" },
   claimText: { color: "#FFFFFF", fontWeight: "800", fontSize: 15 },
   sectionTitle: { fontSize: 18, fontWeight: "800", color: c.onSurface, marginTop: 22, marginBottom: 12 },
-  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 12, marginTop: 16 },
+  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 12 },
   gameCard: {
     width: "48%",
     backgroundColor: c.surfaceSecondary,

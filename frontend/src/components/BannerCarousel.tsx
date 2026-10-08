@@ -19,7 +19,8 @@ export function BannerCarousel({ banners }: { banners: Banner[] }) {
   const styles = useStyles();
   const { width: screenW } = useWindowDimensions();
   const cardWidth = screenW - H_PADDING * 2;
-  const bannerHeight = Math.round(cardWidth * 0.46);
+  // Compact banner: ~2.65:1 ratio. Upload images at 1200 × 450 px (JPG/PNG).
+  const bannerHeight = Math.round(cardWidth * 0.375);
   const [index, setIndex] = useState(0);
   const listRef = useRef<FlatList<Banner>>(null);
 

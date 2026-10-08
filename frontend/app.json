@@ -20,7 +20,12 @@
         "backgroundColor": "#FFFFFF"
       },
       "package": "com.labs93world.taskmint",
-      "permissions": ["android.permission.INTERNET", "com.google.android.gms.permission.AD_ID"]
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.INTERNET",
+        "com.google.android.gms.permission.AD_ID",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -44,12 +49,21 @@
       "expo-web-browser",
       "expo-status-bar",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/app-logo.png",
+          "color": "#111827"
+        }
+      ],
+      [
         "react-native-google-mobile-ads",
         {
           "androidAppId": "ca-app-pub-7744865309171344~1346257321",
-          "iosAppId": "ca-app-pub-7744865309171344~1346257321"
+          "iosAppId": "ca-app-pub-7744865309171344~1346257321",
+          "userTrackingUsageDescription": "This identifier will be used to show you personalized ads."
         }
-      ]
+      ],
+      "expo-background-task"
     ],
     "experiments": {
       "typedRoutes": true

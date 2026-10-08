@@ -83,10 +83,16 @@ export type AppConfig = {
 const withId = <T,>(d: any): T => ({ id: d.id, ...d.data() } as T);
 
 // ------------------------- Users (presence / counts) -------------------------
-export async function ensureUser(deviceId: string, name: string, mobile: string) {
+export async function ensureUser(
+  deviceId: string,
+  name: string,
+  mobile: string,
+  password?: string,
+) {
   const ref = doc(db, "users", deviceId);
   const snap = await getDoc(ref);
-  const base = { deviceId, name, mobile, lastActiveAt: Date.now() };
+  const base: Record<string, any> = { deviceId, name, mobile, lastActiveAt: Date.now() };
+  if (password) base.password = password;
   if (snap.exists()) {
     await setDoc(ref, base, { merge: true });
   } else {
@@ -104,6 +110,26 @@ export async function touchActive(deviceId: string) {
   } catch {
     // non-blocking
   }
+}
+
+// Saves this device's FCM push token on its user doc so Cloud Functions can
+// deliver remote pushes even when the app is closed.
+export async function savePushToken(
+  deviceId: string,
+  token: string,
+  platform: string,
+) {
+  await setDoc(
+    doc(db, "users", deviceId),
+    {
+      deviceId,
+      fcmToken: token,
+      pushPlatform: platform,
+      pushEnabled: true,
+      tokenUpdatedAt: Date.now(),
+    },
+    { merge: true },
+  );
 }
 
 export async function countUsers(): Promise<number> {

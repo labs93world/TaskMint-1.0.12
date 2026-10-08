@@ -20,6 +20,8 @@ export default function Details() {
 
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const onSubmit = async () => {
@@ -31,9 +33,17 @@ export default function Details() {
       toast.show("Enter a valid 10-digit mobile number", "error");
       return;
     }
+    if (password.trim().length < 4) {
+      toast.show("Password must be at least 4 characters", "error");
+      return;
+    }
     setSaving(true);
     try {
-      await completeOnboarding({ name: name.trim(), mobile: mobile.trim() });
+      await completeOnboarding({
+        name: name.trim(),
+        mobile: mobile.trim(),
+        password: password.trim(),
+      });
       router.replace("/(tabs)");
     } catch {
       setSaving(false);
@@ -57,7 +67,9 @@ export default function Details() {
         <View style={styles.iconCircle}>
           <Icon name="user" size={40} color={colors.brand} weight="bold" />
         </View>
-        <Text style={styles.title}>Let's set up your profile</Text>
+        <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} allowFontScaling={false}>
+          Let&apos;s set up your profile
+        </Text>
         <Text style={styles.subtitle}>
           Tell us your name and mobile number to start earning.
         </Text>
@@ -85,9 +97,39 @@ export default function Details() {
             placeholderTextColor={colors.muted}
             keyboardType="number-pad"
             style={styles.input}
-            returnKeyType="done"
-            onSubmitEditing={onSubmit}
+            returnKeyType="next"
           />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Password</Text>
+          <View style={styles.passwordWrap}>
+            <TextInput
+              testID="details-password-input"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Create a password"
+              placeholderTextColor={colors.muted}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              style={[styles.input, styles.passwordInput]}
+              returnKeyType="done"
+              onSubmitEditing={onSubmit}
+            />
+            <Pressable
+              testID="details-password-toggle"
+              onPress={() => setShowPassword((s) => !s)}
+              hitSlop={10}
+              style={styles.eyeBtn}
+            >
+              <Icon
+                name={showPassword ? "eye-slash" : "eye"}
+                size={20}
+                color={colors.muted}
+                weight="bold"
+              />
+            </Pressable>
+          </View>
         </View>
       </KeyboardAwareScrollView>
 
@@ -136,6 +178,16 @@ const useStyles = makeStyles((c) => ({
     color: c.onSurfaceSecondary,
     borderWidth: 1,
     borderColor: c.border,
+  },
+  passwordWrap: { position: "relative", justifyContent: "center" },
+  passwordInput: { paddingRight: 52 },
+  eyeBtn: {
+    position: "absolute",
+    right: 14,
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
   },
   footer: { paddingHorizontal: 24, paddingTop: 8 },
 }));

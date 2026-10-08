@@ -48,23 +48,27 @@ export default function Wallet() {
       toast.show(`Minimum withdrawal is ${formatRupees(MIN_WITHDRAW_RUPEES)}`, "error");
       return;
     }
-    if (rupeesToPoints(amt) > points) {
-      toast.show("Insufficient balance", "error");
-      return;
-    }
+    // Validate payout detail format first, so users always get format feedback.
     let payDetail = "";
     if (method === "UPI") {
-      if (detail.trim().length < 4) {
-        toast.show("Enter a valid UPI ID", "error");
+      const upi = detail.trim();
+      // Valid UPI: handle@provider (e.g. name123@okhdfcbank, 9876543210@ybl)
+      const upiRegex = /^[a-zA-Z0-9.\-_]{2,}@[a-zA-Z]{2,}$/;
+      if (!upiRegex.test(upi)) {
+        toast.show("Enter a valid UPI ID (e.g. name@okhdfcbank)", "error");
         return;
       }
-      payDetail = detail.trim();
+      payDetail = upi;
     } else {
       if (accountNo.trim().length < 6 || ifsc.trim().length < 4) {
         toast.show("Enter valid account number and IFSC code", "error");
         return;
       }
       payDetail = `A/C ${accountNo.trim()} • IFSC ${ifsc.trim().toUpperCase()}`;
+    }
+    if (rupeesToPoints(amt) > points) {
+      toast.show("Insufficient balance", "error");
+      return;
     }
     setSubmitting(true);
     try {
@@ -99,27 +103,20 @@ export default function Wallet() {
     <View style={styles.screen}>
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <Text style={styles.screenTitle}>Wallet</Text>
+        <View style={styles.headerBalance} testID="wallet-balance">
+          <Icon name="wallet" size={16} color={colors.brand} weight="fill" />
+          <Text style={styles.headerBalanceText} numberOfLines={1} allowFontScaling={false}>
+            ₹{balanceRupees.toFixed(2)}
+          </Text>
+        </View>
       </View>
       <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false}
         bottomOffset={24}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
       >
-        {/* Balance card */}
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Available balance</Text>
-          <Text style={styles.balanceValue} testID="wallet-balance">
-            {formatRupees(balanceRupees)}
-          </Text>
-          <View style={styles.balancePts}>
-            <Icon name="coins" size={16} color={colors.warning} weight="fill" />
-            <Text style={styles.balancePtsText}>{formatPoints(points)} points</Text>
-            <Text style={styles.ratio}>• 1000 points = ₹1</Text>
-          </View>
-        </View>
-
         {/* Withdraw */}
-        <View style={[styles.card, { marginTop: 22 }]}>
+        <View style={styles.card}>
           <Segmented
             testID="wallet-method"
             value={method}
@@ -197,7 +194,7 @@ export default function Wallet() {
         </View>
 
         {/* History */}
-        <View style={{ height: 22 }} />
+        <View style={{ marginTop: 16 }} />
         <Segmented
           testID="wallet-history-tabs"
           value={histTab}
@@ -302,18 +299,26 @@ function EmptyHistory({ text }: { text: string }) {
 
 const useStyles = makeStyles((c) => ({
   screen: { flex: 1, backgroundColor: c.surface },
-  topBar: { paddingHorizontal: 16, paddingBottom: 12, backgroundColor: c.surface },
-  screenTitle: { fontSize: 24, fontWeight: "800", color: c.onSurface },
-  balanceCard: {
-    backgroundColor: c.brandPrimary,
-    borderRadius: 24,
-    padding: 22,
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: c.surface,
   },
-  balanceLabel: { color: "rgba(255,255,255,0.65)", fontSize: 14, fontWeight: "600" },
-  balanceValue: { color: "#FFFFFF", fontSize: 40, fontWeight: "800", marginTop: 6 },
-  balancePts: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, flexWrap: "wrap" },
-  balancePtsText: { color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: "700" },
-  ratio: { color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: "600" },
+  screenTitle: { fontSize: 24, fontWeight: "800", color: c.onSurface },
+  headerBalance: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: c.brandTertiary,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    maxWidth: 160,
+  },
+  headerBalanceText: { fontSize: 16, fontWeight: "800", color: c.brand },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "800",

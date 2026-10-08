@@ -1,0 +1,28 @@
+{
+  "summary": "Verified both requested UI changes on TaskMint web preview (frontend-only; app uses Firestore directly). (a) PASS: Home tab > Offerwall segment (home-segmented-offerwall) lists 2 real Firestore tasks; tapping a task card (task-card-*) opens task-detail-modal which contains ONLY the 'Start task' button (testID 'task-start-button' present, visible). No element with testID 'task-open-link' exists and no 'Open task link' text renders anywhere in the modal. Confirmed both at runtime (DOM queries) and by code inspection of TaskDetailModal.tsx (only 'task-start-button'/'task-submit-button'/'task-proof-input' remain). (b) PASS: Profile tab long-press (~900ms, threshold 600ms) on version text (testID 'profile-version', 'TaskMint v1.0.0') opens popup titled 'How are you doing?' (testID 'admin-key-modal'). Typed 'HelloVisible123' into admin-key-input: rendered input has NO type='password' attribute (secureTextEntry removed) and screenshot confirms characters visible as plain text, not dots. Wrong-key Send correctly shows greet-modal, so popup logic intact. Regression: onboarding (login-continue-button -> details name/mobile -> submit) works, welcome popup claims 1,000 pts, Home/Wallet/Profile tabs all navigate cleanly (home-points, wallet-balance, profile-version all render). Zero unexpected console errors (only expected web warnings: expo-notifications web limitation, shadow* deprecation). No deprecated Expo packages (expo-av, expo-barcode-scanner, expo-background-fetch) present; SafeAreaView from react-native used correctly via safe-area-context insets.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Profile", "issues": ["Minor: version Pressable (profile-version) touch target is ~35px tall (fontSize 13 + paddingVertical 8) - slightly below the 44px guideline. Acceptable for a hidden affordance; only note if main agent wants stricter a11y."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "None - both requested changes verified working in the live web preview. No fixes required."
+  ],
+  "critical_code_review_comments": [
+    "TaskDetailModal.tsx:86-95 - 'Start task' Button (task-start-button) is the only CTA for un-submitted, submission-enabled tasks; no 'Open task link' block remains. Start-task already calls Linking.openURL(task.taskUrl) internally, so removing the separate open-link button loses no functionality.",
+    "profile.tsx:116-124 - admin-key-input TextInput has no secureTextEntry prop; typed text is visible as required. autoCapitalize='none' retained - note the admin key 'TaskMint000' is case-sensitive, so users must type the capital T/M on mobile keyboards with autocaps off (pre-existing behavior, not part of this change).",
+    "Hardcoded ADMIN_KEY ('TaskMint000') in profile.tsx:15 is a client-side check - trivially readable from the bundle. Pre-existing design from user's repo; flag as informational only."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only per request; FastAPI backend is an unused stub, app talks to Firestore directly)", "frontend": "100%"},
+  "seed_data_creation": "Onboarded fresh device-local user via UI: Name=Rahul, Mobile=9876543210. Received 1,000 pts (Rs.1) welcome bonus. Used Firestore's 2 existing live offerwall tasks (TaskMint 1 / TasMint) for modal verification - no offerwall seed data created or modified.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Both UI changes verified at runtime on https://taskmint-import-3.preview.emergentagent.com. Key flow notes: Home offerwall tasks live behind the segmented control - tap testID 'home-segmented-offerwall' first, then cards are 'task-card-<firestoreId>'. Admin popup: long-press testID 'profile-version' (mouse down ~900ms) opens testID 'admin-key-modal'; input type attribute is null (plain text) since secureTextEntry was removed; correct key is TaskMint000 (case-sensitive), wrong key shows testID 'greet-modal'. Ads/push are no-ops on web by design - do not flag.",
+  "rca_of_issue": "N/A - no bugs found. Both changes implemented exactly as requested and verified end-to-end in the live preview."
+}

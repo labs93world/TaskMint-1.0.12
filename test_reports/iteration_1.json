@@ -1,34 +1,32 @@
 {
-  "summary": "Frontend-only testing of TaskMint Expo app (mobile viewport 390x844). All 11 critical flows PASS: Login→Details→Home onboarding, name/mobile validation, Home header (points pill shows 0 pts initially, 50 pts after daily check-in), segmented toggle (Offerwall/Play & Earn), empty-state for Firestore-locked Offerwall (no crash), daily-checkin-button adds +50 points, game-card navigation (higher-lower), game-get-chances adds +5 chances (ads no-op on web as expected), Wallet balance reflects points/1000 (₹0.05 for 50 pts), amount chip selection, method toggle, history tabs, withdraw validation shows error toast on invalid input, Profile long-press on version opens admin-key-modal, wrong key → greet-modal, correct key 'TaskMint000' → Admin Panel, manage-tabs switches between Banners/Offerwalls/Update without crash, admin stat cards render (payouts/offerwall stats show '—' because Firestore is locked, which is EXPECTED). Firestore permission-denied errors seen in console (expected). No red-screen crashes anywhere. Minor non-blocking console warnings only (RN Web deprecations: shadow* style props, pointerEvents, useNativeDriver fallback — these are React Native Web platform warnings, not bugs).",
-  "backend_issues": { "critical": [], "minor": [] },
+  "summary": "Regression check after app.json native-build fix (top-level 'react-native-google-mobile-ads' key). app.json is valid JSON, parses as valid Expo config (name=TaskMint, android.package=com.labs93world.taskmint, exactly 10 plugins, RNGMA top-level key with android_app_id/ios_app_id present as sibling of 'expo'). Web preview boots cleanly: full onboarding flow (login -> Continue -> details name/mobile -> submit) works, Home renders, first-open Welcome popup (₹1 / 1,000 pts) appears and bonus claims correctly (home points = 1,000 pts, wallet balance = ₹1), and Home/Wallet/Profile tab switching works without crash. Zero unexpected JS runtime/console errors. The actual EAS/Gradle build runs on Emergent's cloud and was NOT verifiable in this sandbox, per scope. No deprecated Expo packages (expo-av, expo-barcode-scanner, expo-background-fetch) present; expo-background-task is used correctly. No SafeAreaView issues detected (uses react-native-safe-area-context).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
   "frontend_issues": {
     "ui_bugs": [],
     "integration_issues": [],
-    "design_issues": [
-      {"screen": "admin/index", "issues": ["Dashboard stat cards are in a horizontal ScrollView — on 390px viewport only ~2.5 cards are visible at a time; this is intentional horizontal scroll, user can swipe. Not a bug but worth confirming on real device."]}
-    ],
-    "react_native_issues": [
-      {"component": "RN Web shadow props", "issue": "Multiple components use shadow* style props which are deprecated on RN Web ('shadow*' style props are deprecated. Use 'boxShadow'). Only a web preview warning; native Android/iOS still support shadow* properly. Non-blocking."},
-      {"component": "Animated useNativeDriver", "issue": "Console warning: 'useNativeDriver is not supported because the native animated module is missing' — this is the expected RN Web fallback to JS-based animation, not an issue on native builds."}
-    ]
+    "design_issues": [],
+    "react_native_issues": []
   },
-  "test_report_links": ["/tmp/final.png"],
+  "test_report_links": [],
   "action_items": [
-    "No blocker bugs — all requested flows pass. Firestore rules remain locked (expected for this iteration).",
-    "Optional polish: migrate shadow* styles to boxShadow and props.pointerEvents to style.pointerEvents to silence RN Web deprecation warnings (cosmetic only).",
-    "When Firestore rules are opened in a later iteration, re-test: banner carousel visibility, offerwall tasks list + task detail popup + proof submission, payout+offerwall submission → admin counters increment and admin review screens list items."
+    "Trigger a fresh EAS production Android build on Emergent Publish to confirm RUN_GRADLEW now passes (the sandbox cannot run gradle; the app.json fix targets the RNGMA app-json.gradle evaluation failure).",
+    "If the build still fails, capture the new gradle error output - the previous two errors (googleMobileAdsJson property missing, compileSdk unspecified) should now be resolved by the top-level 'react-native-google-mobile-ads' key."
   ],
   "critical_code_review_comments": [
-    "UserContext.spendPoints uses setPoints functional updater + setTimeout(0) tick to read 'ok' — works but fragile; consider using a ref or returning a boolean from a non-React path to avoid race conditions on rapid taps.",
-    "game/[id].tsx and admin/index.tsx are well under 700 lines and modular — no DRY violations spotted.",
-    "All interactive elements have testID attributes as required.",
-    "Firestore errors are correctly swallowed in UserContext.reconcile with empty catch, preventing crashes."
+    "app.json: RNGMA app IDs are identical in the plugin config ([plugins] entry, camelCase androidAppId/iosAppId) and the new top-level key (snake_case android_app_id/ios_app_id) - both required by RNGMA v17 (plugin for autolinking/Info.plist+manifest, top-level for android/app-json.gradle). Both correctly present.",
+    "No code changes were made besides app.json; _layout.tsx and (tabs)/index.tsx are unchanged and function correctly in the web preview."
   ],
   "updated_files": [],
-  "success_rate": { "backend": "N/A (frontend-only)", "frontend": "100% (19/19 steps PASS)" },
-  "seed_data_creation": "None. Onboarded with name='Test User', mobile='9876543210' locally on device.",
+  "success_rate": {
+    "backend": "N/A (frontend-only regression, backend unused by app)",
+    "frontend": "100%"
+  },
+  "seed_data_creation": "Onboarded a device-local test user via UI: Name=Rahul, Mobile=9876543210 (per /app/memory/test_credentials.md). Received 1,000 pts (₹1) welcome bonus. Data persists in Firestore project taskmint-cfc5a and device-local storage.",
   "retest_needed": false,
-  "should_main_agent_self_test": false,
-  "context_for_next_testing_agent": "Firestore rules are locked (permission-denied on all reads). Local-only flows (onboarding, points math, games+chances, daily check-in, wallet UI, admin access gate, admin manage tabs) all verified working. Once Firestore rules open up, re-test: BannerCarousel display, Offerwall task list + task-card-{id} tap + TaskDetailModal + proof submission, admin stat counts, admin/payouts and admin/offerwall-requests review screens. All testIDs used in this run match the spec and work correctly in the web preview.",
-  "rca_of_issue": "N/A — no bugs found. The permission-denied Firestore errors in console are expected and documented in test_credentials.md; the app handles them gracefully with empty states and error toasts."
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "app.json fix verified as non-breaking in web preview. All onboarding/home/wallet/profile flows pass with testIDs: login-screen, login-continue-button, details-screen, details-name-input, details-mobile-input, details-submit-button, home-points, welcome-popup, welcome-claim-button, tab-home/tab-wallet/tab-profile, wallet-balance, profile-version. Only remaining verification is the actual EAS gradle build on Emergent's cloud pipeline. Note: frontend/.env uses EXPO_PUBLIC_BACKEND_URL (no EXPO_BACKEND_URL key); app talks directly to Firestore, FastAPI backend unused. Previous iteration_1.json referenced in the request did not exist in /app/test_reports/ - this is iteration_1.json.",
+  "rca_of_issue": "Original build failure RCA (per request, confirmed plausible from RNGMA v17 internals): react-native-google-mobile-ads/android/app-json.gradle reads the TOP-LEVEL 'react-native-google-mobile-ads' key from app.json to populate rootProject.ext.googleMobileAdsJson. With the key absent, build.gradle line 123 threw 'Cannot get property googleMobileAdsJson on extra properties extension', aborting project evaluation before the android{} block could set compileSdk - producing the second error 'project does not specify compileSdk'. Fix adds the top-level key with snake_case android_app_id/ios_app_id. Regression impact: NONE - app.json additions do not affect JS runtime; verified by full web-preview regression (100% pass, 0 console errors)."
 }

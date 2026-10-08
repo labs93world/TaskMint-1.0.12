@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "462062199992",
+    "project_id": "taskmint-cfc5a",
+    "storage_bucket": "taskmint-cfc5a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:462062199992:android:a44a27da46b68924a7c04d",
+        "android_client_info": {
+          "package_name": "com.labs93world.taskmint"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-jfLwkFtOcdZzWxY6RmxKpNYE6H6j0oA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -58,16 +58,6 @@ export function TaskDetailModal({
         <Text style={styles.rulesText}>{task.rules || "Complete the task to earn your reward."}</Text>
       </View>
 
-      {task.taskUrl ? (
-        <Button
-          label="Open task link"
-          variant="secondary"
-          testID="task-open-link"
-          onPress={() => Linking.openURL(task.taskUrl!).catch(() => {})}
-          style={{ marginTop: 14 }}
-        />
-      ) : null}
-
       {alreadySubmitted ? (
         <View style={styles.statusBox}>
           <View style={styles.statusRow}>
@@ -82,22 +72,24 @@ export function TaskDetailModal({
           )}
           {submission!.status === "pending" && (
             <Text style={styles.proofText}>
-              {"We're reviewing your submission. You'll be credited once approved."}
+              We're reviewing your submission. You'll be credited once approved.
             </Text>
           )}
         </View>
+      ) : !task.submissionEnabled ? (
+        <View style={styles.noSubmitBox}>
+          <Icon name="check-circle" size={18} color={colors.success} weight="fill" />
+          <Text style={styles.noSubmitText}>
+            No submission required — just open the task above and complete it.
+          </Text>
+        </View>
       ) : !started ? (
         <Button
-          label={task.submissionEnabled ? "Start task" : "Open task"}
+          label="Start task"
           testID="task-start-button"
           onPress={() => {
             if (task.taskUrl) Linking.openURL(task.taskUrl).catch(() => {});
-            if (task.submissionEnabled) {
-              setStarted(true);
-            } else {
-              // Submission disabled: just open the link — no proof field, no submit.
-              close();
-            }
+            setStarted(true);
           }}
           style={{ marginTop: 14 }}
         />
@@ -153,6 +145,16 @@ const useStyles = makeStyles((c) => ({
   proofText: { fontSize: 13, color: c.muted, lineHeight: 19 },
   reasonText: { fontSize: 13, color: c.error, fontWeight: "600" },
   inputLabel: { fontSize: 14, fontWeight: "700", color: c.onSurfaceTertiary, marginBottom: 8 },
+  noSubmitBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: c.success + "14",
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 16,
+  },
+  noSubmitText: { flex: 1, fontSize: 13, color: c.onSurfaceTertiary, lineHeight: 19, fontWeight: "600" },
   input: {
     backgroundColor: c.surfaceTertiary,
     borderRadius: 14,

@@ -80,9 +80,11 @@ memory/test_credentials.md
 
 # Mobile development
 android-sdk/
-.env
-.env.*
-*.env
+# NOTE: .env files must NOT be ignored — Emergent's deployment flow ships them
+# into the deployment secrets store and build workspace.
 credentials.json
 *.key
 .credentials
+.env
+.env.*
+*.env

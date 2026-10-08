@@ -10,6 +10,7 @@ import React, {
 
 import { storage } from "@/src/utils/storage";
 import { KEYS } from "@/src/lib/storageKeys";
+import { processAndNotify } from "@/src/lib/notifications";
 import {
   ensureUser,
   myPayouts,
@@ -20,7 +21,7 @@ import {
 } from "@/src/lib/firestore";
 import { rupeesToPoints } from "@/src/utils/format";
 
-export type Profile = { name: string; mobile: string; avatar?: string };
+export type Profile = { name: string; mobile: string; password?: string; avatar?: string };
 
 export type Txn = {
   id: string;
@@ -84,7 +85,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setTransactions(txns ?? []);
       setReady(true);
       if (ob && pr) {
-        ensureUser(id!, pr.name, pr.mobile).catch(() => {});
+        ensureUser(id!, pr.name, pr.mobile, pr.password).catch(() => {});
       }
     })();
   }, []);
@@ -96,7 +97,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       bootProfile.current = p;
       await storage.setItem(KEYS.profile, p);
       await storage.setItem(KEYS.onboarded, true);
-      if (deviceId) await ensureUser(deviceId, p.name, p.mobile).catch(() => {});
+      if (deviceId) await ensureUser(deviceId, p.name, p.mobile, p.password).catch(() => {});
     },
     [deviceId],
   );
@@ -174,6 +175,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       ]);
       setPayouts(pays);
       setSubmissions(subs);
+      // Notify about withdrawal / task-approval status changes (reuses these
+      // already-fetched reads, so no extra Firestore reads are performed).
+      processAndNotify({ pays, subs }).catch(() => {});
 
       // Refund points for rejected withdrawals (once).
       const refunded = (await storage.getItem<string[]>(KEYS.refundedPayouts, [])) ?? [];
