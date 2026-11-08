@@ -1,0 +1,36 @@
+{
+  "summary": "Frontend-only test on the Expo web preview (375x667), done by watching Firestore network traffic (POST bodies that mention meta/catalog on Listen and Write channels). PASSING: 1) Onboarding through /login reaches the tabs, and Home renders after the catalog load. 2) The catalog is read once per launch, about 1.8s after start. Switching tabs (wallet/profile/home) and the Home Play/Offerwall toggle caused 0 extra reads. Home pull-to-refresh only calls reconcile() (checked in code; it cannot be simulated on web). 3) Wallet with ₹1: chips are ₹20/₹30/₹50, entering 10 shows 'Minimum withdrawal is ₹20', no popup. 4) Wallet with tm_points=19000 (₹19; on web this is localStorage): tm_min_raised_at is set, and visiting Wallet shows min-raise-popup with title 'A small update on withdrawals 🙏' and a ₹30 message. min-raise-ok closes it. Chips become ₹30/₹50/₹100. Entering 20 shows 'Minimum withdrawal is ₹30'. Returning to Wallet from another tab and relaunching the app the same day show no popup. A faked earlier day in tm_min_popup_days brings the popup back once; with 2 days already used it no longer shows. 5) Admin through a long press on the Profile version text plus the key opens /admin. Stats load (143 users / 15 active / 11 payouts / 69 offerwall). The Banners/Offerwalls/Update tabs render (6 banners, 6 tasks) and switching them causes 0 catalog reads. The admin catalog is read once on load, and admin-refresh does exactly 1 more read. Adding a TEST_ banner showed up in the list right away with no read. The write to meta/catalog was allowed, so security rules permit it. Deleting it worked, and the count was back to 6 after refresh. CRITICAL FINDING: before my admin visit the meta/catalog doc did not exist (user launches got an empty catalog). Opening /admin ran the automatic migration getCatalog(true), which copied the legacy app_config/config into meta/catalog. That config has forceUpdate=true and latestVersion=1.0.1, but app.json version is 1.0.0. Every launch of the web preview now shows the full-screen 'Update required' gate (force-update-gate) about 1s after start. Any real build at 1.0.0 will be blocked the same way.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ForceUpdateGate / meta/catalog config", "issue": "After migration, meta/catalog.config = {forceUpdate:true, latestVersion:'1.0.1'} (copied from legacy app_config/config) while app.json version='1.0.0'. Every user launch is now blocked by the 'Update required' screen. Its Play Store URL is empty, so it falls back to the hardcoded URL. Either bump app.json version to 1.0.1+ or turn Force update off in Admin > Update (that is the user's config, so the agent did not change it).", "testID": "force-update-gate", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Admin Panel", "issues": ["Stat label 'Active Today' is cut off to 'Active To…' at 375px width", "The IconBtn actions (pin/hide/edit/delete) have no testID or accessibilityLabel, and delete runs right away with no confirmation"]},
+      {"screen": "Min-raise popup", "issues": ["Empty space above the icon, because the Popup header row holds only the close X"]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_8.json"],
+  "action_items": [
+    "HIGH: Fix the force-update block. The migrated meta/catalog.config has forceUpdate=true, latestVersion=1.0.1, but app.json version is 1.0.0. Decide with the user: bump app.json version, or turn force update off from the Admin Update tab.",
+    "Admin catalog writes replace the whole banners/tasks array from the admin's cached copy (saveCatalogField with merge on a top-level array). If two admins or devices edit between refreshes, the last write silently overwrites the other's changes. Consider reading fresh data before writing (a transaction) or at least documenting it.",
+    "Add testIDs to the admin IconBtn actions and the Field TextInputs, and add a confirm step before delete.",
+    "On native, backgroundSync in src/lib/notifications.ts:275 calls getCatalog() on every background run (about every 15 min). That is extra meta/catalog reads beyond 'once per launch'. Make sure this is intended for the read budget."
+  ],
+  "critical_code_review_comments": [
+    "wallet.tsx: the popup day check uses new Date().toDateString() (device local time) while other day logic uses IST helpers. Minor inconsistency.",
+    "UserContext: the raise is permanent once the balance reaches ₹18 (stays at ₹30 after a withdrawal). This matches the request.",
+    "catalog.ts: when the catalog doc is missing, users get an empty catalog until an admin opens the panel (migration runs only for admin). This works as designed, but the first admin visit silently publishes the legacy config, including force update.",
+    "Ad unit IDs in src/constants/ads.ts match the app.json androidAppId/iosAppId (ca-app-pub-3805301147002491~3658077279). App Open uses a 45s cooldown. Native only, not testable on web.",
+    "No deprecated expo packages (expo-av/expo-barcode-scanner/expo-background-fetch) found in package.json."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "95% (all requested flows pass; force-update config now blocks the app)"},
+  "seed_data_creation": "Created and deleted 1 TEST banner (picsum TEST_banner) through the admin UI. Opening /admin auto-created meta/catalog from the legacy collections (app-designed migration, not test data).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Onboarding: tap login-continue-button, then keyboard.type into details-name/mobile/password inputs, tap details-submit-button, then welcome-claim-button. Points are in localStorage key tm_points (1000 pts = ₹1). Raise state is in tm_min_raised_at, popup days in tm_min_popup_days. Admin: long press the 'TaskMint v' text on Profile, type key TaskMint000 into admin-key-input, tap admin-key-submit. Do NOT force-click tabs while a Popup is open: the click lands on the backdrop and closes the popup. Count catalog reads by matching 'meta/catalog' in the url-decoded POST bodies of Firestore Listen/channel. NOTE: the preview currently shows force-update-gate because of the migrated config (forceUpdate=true, 1.0.1 > 1.0.0).",
+  "rca_of_issue": "The force-update gate appears because getCatalog(true) (admin only) migrated legacy app_config/config {forceUpdate:true, latestVersion:'1.0.1'} into meta/catalog on the first admin open. ForceUpdateGate compares this with Constants.expoConfig.version='1.0.0' and blocks. Before that, the doc did not exist, so users got config=null and no gate."
+}

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { makeStyles, useTheme } from "@/src/theme";
 import { Popup } from "@/src/components/ui/Popup";
@@ -9,13 +8,8 @@ import { Button } from "@/src/components/ui/Button";
 import { TaskLogo } from "@/src/components/ui/TaskLogo";
 import { useToast } from "@/src/components/ui/Toast";
 import { IconBtn, Field, ToggleRow } from "./BannersManager";
-import {
-  addTask,
-  deleteTask,
-  listTasks,
-  updateTask,
-  OfferTask,
-} from "@/src/lib/firestore";
+import { adminTasks, newId, OfferTask } from "@/src/lib/firestore";
+import { useAdminCatalog } from "@/src/lib/catalog";
 import { formatRupees } from "@/src/utils/format";
 
 const EMPTY = {
@@ -32,19 +26,16 @@ const EMPTY = {
 export function OfferwallsManager() {
   const styles = useStyles();
   const { colors } = useTheme();
-  const qc = useQueryClient();
   const toast = useToast();
-  const q = useQuery({ queryKey: ["admin-tasks"], queryFn: () => listTasks(true) });
+  const { catalog, save: saveField } = useAdminCatalog();
+  const all = catalog.tasks;
+  const write = (next: OfferTask[]) => saveField("tasks", next);
 
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<OfferTask | null>(null);
   const [form, setForm] = useState({ ...EMPTY });
   const [saving, setSaving] = useState(false);
 
-  const refresh = () => {
-    qc.invalidateQueries({ queryKey: ["admin-tasks"] });
-    qc.invalidateQueries({ queryKey: ["tasks"] });
-  };
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
   const openAdd = () => {
@@ -84,9 +75,12 @@ export function OfferwallsManager() {
       proofHint: form.proofHint.trim(),
     };
     try {
-      if (editing) await updateTask(editing.id, payload);
-      else await addTask({ ...payload, pinned: false, hidden: false });
-      refresh();
+      if (editing) await write(all.map((x) => (x.id === editing.id ? { ...x, ...payload } : x)));
+      else
+        await write([
+          ...all,
+          { id: newId(), ...payload, pinned: false, hidden: false, createdAt: Date.now() },
+        ]);
       setModal(false);
       toast.show("Task saved", "success");
     } catch {
@@ -97,16 +91,20 @@ export function OfferwallsManager() {
   };
 
   const toggle = async (t: OfferTask, field: "pinned" | "hidden") => {
-    await updateTask(t.id, { [field]: !t[field] });
-    refresh();
+    await write(all.map((x) => (x.id === t.id ? { ...x, [field]: !t[field] } : x))).catch(() =>
+      toast.show("Save failed", "error"),
+    );
   };
   const remove = async (t: OfferTask) => {
-    await deleteTask(t.id);
-    refresh();
-    toast.show("Task deleted", "info");
+    try {
+      await write(all.filter((x) => x.id !== t.id));
+      toast.show("Task deleted", "info");
+    } catch {
+      toast.show("Delete failed", "error");
+    }
   };
 
-  const tasks = q.data ?? [];
+  const tasks = adminTasks(catalog);
 
   return (
     <View>

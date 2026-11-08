@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { Text, View } from "react-native";
-import { useQuery } from "@tanstack/react-query";
 
 import { makeStyles } from "@/src/theme";
 import { Button } from "@/src/components/ui/Button";
 import { useToast } from "@/src/components/ui/Toast";
 import { Field, ToggleRow } from "./BannersManager";
-import { getConfig, setConfig } from "@/src/lib/firestore";
+import { useAdminCatalog } from "@/src/lib/catalog";
 
 export function ForceUpdateManager() {
   const styles = useStyles();
   const toast = useToast();
-  const q = useQuery({ queryKey: ["admin-config"], queryFn: () => getConfig() });
+  const { catalog, save: saveField } = useAdminCatalog();
+  const cfg = catalog.config;
 
   const [forceUpdate, setForceUpdate] = useState(false);
   const [latestVersion, setLatestVersion] = useState("1.0.0");
@@ -20,18 +20,18 @@ export function ForceUpdateManager() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (q.data) {
-      setForceUpdate(!!q.data.forceUpdate);
-      setLatestVersion(q.data.latestVersion || "1.0.0");
-      setUpdateUrl(q.data.updateUrl || "");
-      setMessage(q.data.message || "");
+    if (cfg) {
+      setForceUpdate(!!cfg.forceUpdate);
+      setLatestVersion(cfg.latestVersion || "1.0.0");
+      setUpdateUrl(cfg.updateUrl || "");
+      setMessage(cfg.message || "");
     }
-  }, [q.data]);
+  }, [cfg]);
 
   const save = async () => {
     setSaving(true);
     try {
-      await setConfig({ forceUpdate, latestVersion: latestVersion.trim(), updateUrl: updateUrl.trim(), message: message.trim() });
+      await saveField("config", { forceUpdate, latestVersion: latestVersion.trim(), updateUrl: updateUrl.trim(), message: message.trim() });
       toast.show("Update settings saved", "success");
     } catch {
       toast.show("Save failed", "error");

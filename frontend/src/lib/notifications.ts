@@ -21,7 +21,6 @@ import { Linking, Platform } from "react-native";
 import { storage } from "@/src/utils/storage";
 import { KEYS } from "@/src/lib/storageKeys";
 import {
-  listTasks,
   myPayouts,
   mySubmissions,
   OfferSubmission,
@@ -268,12 +267,10 @@ export async function backgroundSync() {
   const deviceId = (await storage.getItem<string>(KEYS.deviceId, "")) ?? "";
   if (!deviceId) return;
   try {
-    const [pays, subs, tasks] = await Promise.all([
-      myPayouts(deviceId),
-      mySubmissions(deviceId),
-      listTasks(),
-    ]);
-    await processAndNotify({ pays, subs, tasks });
+    // Catalog (tasks) is read only once per app launch; new-task alerts while
+    // closed come from the Cloud Function push instead.
+    const [pays, subs] = await Promise.all([myPayouts(deviceId), mySubmissions(deviceId)]);
+    await processAndNotify({ pays, subs });
   } catch {
     // offline / transient
   }

@@ -28,19 +28,19 @@ export default function Admin() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await qc.invalidateQueries();
+    await qc.invalidateQueries({ queryKey: ["admin"] });
     // allow the spinner to be visible briefly
     setTimeout(() => setRefreshing(false), 600);
   };
 
-  const usersQ = useQuery({ queryKey: ["count-users"], queryFn: countUsers });
-  const activeQ = useQuery({ queryKey: ["count-active"], queryFn: countActiveToday });
+  const usersQ = useQuery({ queryKey: ["admin", "count-users"], queryFn: countUsers });
+  const activeQ = useQuery({ queryKey: ["admin", "count-active"], queryFn: countActiveToday });
   const payoutQ = useQuery({
-    queryKey: ["count-payout-pending"],
+    queryKey: ["admin", "count-payout-pending"],
     queryFn: async () => (await adminPayouts("pending")).length,
   });
   const offerQ = useQuery({
-    queryKey: ["count-offer-pending"],
+    queryKey: ["admin", "count-offer-pending"],
     queryFn: async () => (await adminSubmissions("pending")).length,
   });
 

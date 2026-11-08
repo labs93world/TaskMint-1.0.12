@@ -39,7 +39,20 @@ let appOpenLoaded = false;
 let appOpenShowing = false;
 let appOpenShowOnLoad = false;
 let appOpenLastShown = 0;
-const APP_OPEN_MIN_GAP = 30_000; // ms between App Open displays
+let appOpenLoadedAt = 0;
+let appOpenRequestedAt = 0;
+const APP_OPEN_MIN_GAP = 45_000; // cooldown between App Open displays
+const APP_OPEN_EXPIRY = 4 * 3600_000; // AdMob App Open ads expire after 4h
+const SHOW_ON_LOAD_WINDOW = 6_000; // only auto-show a late load right after open
+
+// Gated (rewarded / rewarded-interstitial) ads also bounce the app through
+// background→active. We must never chain an App Open ad onto those.
+let fullscreenActive = false;
+let suppressUntil = 0;
+function markFullscreen(active: boolean) {
+  fullscreenActive = active;
+  suppressUntil = Date.now() + 3_000;
+}
 
 function loadAppOpen() {
   if (!available) return;
@@ -49,7 +62,8 @@ function loadAppOpen() {
     appOpenLoaded = false;
     appOpenAd.addAdEventListener(AdEventType.LOADED, () => {
       appOpenLoaded = true;
-      if (appOpenShowOnLoad) {
+      appOpenLoadedAt = Date.now();
+      if (appOpenShowOnLoad && Date.now() - appOpenRequestedAt < SHOW_ON_LOAD_WINDOW) {
         appOpenShowOnLoad = false;
         showAppOpen();
       }
@@ -70,13 +84,18 @@ function loadAppOpen() {
 }
 
 function showAppOpen() {
-  if (!available || appOpenShowing) return;
-  // Rate-limit so the ad's own background→foreground bounce can't loop it.
+  if (!available || appOpenShowing || fullscreenActive || Date.now() < suppressUntil) return;
+  // Cooldown so the ad's own background→foreground bounce can't loop it.
   if (Date.now() - appOpenLastShown < APP_OPEN_MIN_GAP) return;
+  if (appOpenLoaded && Date.now() - appOpenLoadedAt > APP_OPEN_EXPIRY) {
+    loadAppOpen(); // stale ad — fetch a fresh one
+  }
   if (!appOpenLoaded) {
     appOpenShowOnLoad = true;
+    appOpenRequestedAt = Date.now();
     return;
   }
+  appOpenShowOnLoad = false;
   try {
     appOpenShowing = true;
     appOpenLastShown = Date.now();
@@ -99,8 +118,9 @@ export async function initAds() {
     AppState.addEventListener("change", (next) => {
       const returning = /inactive|background/.test(appStateRef) && next === "active";
       appStateRef = next;
-      // Guard + cooldown inside showAppOpen prevent the self-trigger loop.
-      if (returning && !appOpenShowing) showAppOpen();
+      // Every return to the app shows one; guards + cooldown inside
+      // showAppOpen prevent loops and chaining after rewarded ads.
+      if (returning) showAppOpen();
     });
   } catch {
     // ignore
@@ -135,8 +155,18 @@ export function makeGatedAd(type: AdType, handlers: GatedHandlers): GatedAd | nu
     const subs: (() => void)[] = [];
     subs.push(ad.addAdEventListener(RewardedAdEventType.LOADED, () => handlers.onLoaded()));
     subs.push(ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => handlers.onEarned()));
-    subs.push(ad.addAdEventListener(AdEventType.CLOSED, () => handlers.onClosed()));
-    subs.push(ad.addAdEventListener(AdEventType.ERROR, (e: any) => handlers.onError(classifyAdError(e), e)));
+    subs.push(
+      ad.addAdEventListener(AdEventType.CLOSED, () => {
+        markFullscreen(false);
+        handlers.onClosed();
+      }),
+    );
+    subs.push(
+      ad.addAdEventListener(AdEventType.ERROR, (e: any) => {
+        if (shown) markFullscreen(false);
+        handlers.onError(classifyAdError(e), e);
+      }),
+    );
     return {
       load: () => {
         try {
@@ -149,9 +179,11 @@ export function makeGatedAd(type: AdType, handlers: GatedHandlers): GatedAd | nu
         try {
           if (!shown) {
             shown = true;
+            markFullscreen(true);
             ad.show();
           }
         } catch (e) {
+          markFullscreen(false);
           handlers.onError("unknown", e);
         }
       },

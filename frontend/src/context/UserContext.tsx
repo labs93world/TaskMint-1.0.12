@@ -19,7 +19,13 @@ import {
   PayoutRequest,
   OfferSubmission,
 } from "@/src/lib/firestore";
-import { rupeesToPoints } from "@/src/utils/format";
+import {
+  MIN_RAISE_TRIGGER_RUPEES,
+  MIN_WITHDRAW_RUPEES,
+  pointsToRupees,
+  RAISED_MIN_WITHDRAW_RUPEES,
+  rupeesToPoints,
+} from "@/src/utils/format";
 
 export type Profile = { name: string; mobile: string; password?: string; avatar?: string };
 
@@ -39,6 +45,8 @@ type Ctx = {
   transactions: Txn[];
   payouts: PayoutRequest[];
   submissions: OfferSubmission[];
+  minWithdraw: number;
+  minRaisedAt: number; // 0 = not raised
   completeOnboarding: (p: Profile) => Promise<void>;
   addPoints: (points: number, title: string) => Promise<void>;
   spendPoints: (points: number, title: string) => Promise<boolean>;
@@ -64,7 +72,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [transactions, setTransactions] = useState<Txn[]>([]);
   const [payouts, setPayouts] = useState<PayoutRequest[]>([]);
   const [submissions, setSubmissions] = useState<OfferSubmission[]>([]);
+  const [minRaisedAt, setMinRaisedAt] = useState(0);
   const bootProfile = useRef<Profile | null>(null);
+
+  // Permanently raise the minimum withdrawal once the balance reaches ₹18.
+  useEffect(() => {
+    if (!ready || minRaisedAt || pointsToRupees(points) < MIN_RAISE_TRIGGER_RUPEES) return;
+    const now = Date.now();
+    setMinRaisedAt(now);
+    storage.setItem(KEYS.minRaisedAt, now);
+  }, [ready, points, minRaisedAt]);
 
   useEffect(() => {
     (async () => {
@@ -77,6 +94,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const pr = await storage.getItem<Profile | null>(KEYS.profile, null);
       const pts = await storage.getItem<number>(KEYS.points, 0);
       const txns = await storage.getItem<Txn[]>(KEYS.transactions, []);
+      const raised = await storage.getItem<number>(KEYS.minRaisedAt, 0);
+      setMinRaisedAt(raised ?? 0);
       setDeviceId(id!);
       setOnboarded(!!ob);
       setProfile(pr);
@@ -219,12 +238,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       transactions,
       payouts,
       submissions,
+      minWithdraw: minRaisedAt ? RAISED_MIN_WITHDRAW_RUPEES : MIN_WITHDRAW_RUPEES,
+      minRaisedAt,
       completeOnboarding,
       addPoints,
       spendPoints,
       reconcile,
     }),
     [
+      minRaisedAt,
       ready,
       deviceId,
       onboarded,

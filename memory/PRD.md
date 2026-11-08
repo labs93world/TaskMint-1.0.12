@@ -54,3 +54,9 @@
 ## Backlog
 - P1: Move ADMIN_KEY out of client code (currently readable in bundle).
 - P2: Version Pressable touch target ~35px (<44px guideline) — acceptable for hidden affordance.
+
+## Update (Jun 2026)
+- Min withdrawal permanently raises to ₹30 once balance reaches ₹18 (UserContext minWithdraw); polite wallet popup once/day for 2 days.
+- App Open ad on every open/return, 45s cooldown, suppressed after rewarded ads, 4h expiry reload.
+- New AdMob IDs (pub-3805301147002491) in app.json + src/constants/ads.ts.
+- Banners/tasks/config in single Firestore doc meta/catalog (src/lib/catalog.ts). Users read once per launch (+1s delay); admin reads once + Refresh button; auto-migrates legacy collections on first admin open. Cloud Function onNewTask now watches meta/catalog.

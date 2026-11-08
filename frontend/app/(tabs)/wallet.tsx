@@ -1,33 +1,39 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "expo-router";
 
 import { makeStyles, useTheme } from "@/src/theme";
 import { Icon } from "@/src/components/ui/Icon";
 import { Segmented } from "@/src/components/ui/Segmented";
 import { Button } from "@/src/components/ui/Button";
 import { StatusBadge } from "@/src/components/ui/StatusBadge";
+import { Popup } from "@/src/components/ui/Popup";
+import { storage } from "@/src/utils/storage";
+import { KEYS } from "@/src/lib/storageKeys";
 import { useUser } from "@/src/context/UserContext";
 import { useToast } from "@/src/components/ui/Toast";
 import { createPayout } from "@/src/lib/firestore";
 import {
   formatPoints,
   formatRupees,
-  MIN_WITHDRAW_RUPEES,
   pointsToRupees,
   rupeesToPoints,
 } from "@/src/utils/format";
 import { formatIST } from "@/src/utils/time";
 
 const CHIPS = [20, 30, 50];
+const RAISED_CHIPS = [30, 50, 100];
+const POPUP_WINDOW = 2 * 86400000; // show the min-raise notice for 2 days
 const PAGE = 10;
 
 export default function Wallet() {
   const styles = useStyles();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { points, profile, deviceId, transactions, payouts, reconcile, spendPoints } = useUser();
+  const { points, profile, deviceId, transactions, payouts, reconcile, spendPoints, minWithdraw, minRaisedAt } =
+    useUser();
   const toast = useToast();
 
   const [method, setMethod] = useState<"UPI" | "Bank">("UPI");
@@ -40,12 +46,29 @@ export default function Wallet() {
   const [txnLimit, setTxnLimit] = useState(PAGE);
   const [wLimit, setWLimit] = useState(PAGE);
 
+  const [notice, setNotice] = useState(false);
+  const chips = minRaisedAt ? RAISED_CHIPS : CHIPS;
+
+  // Min-withdrawal raise notice: once per day, for 2 days after it was raised.
+  useFocusEffect(
+    useCallback(() => {
+      if (!minRaisedAt || Date.now() - minRaisedAt > POPUP_WINDOW) return;
+      (async () => {
+        const today = new Date().toDateString();
+        const days = (await storage.getItem<string[]>(KEYS.minPopupDays, [])) ?? [];
+        if (days.includes(today) || days.length >= 2) return;
+        await storage.setItem(KEYS.minPopupDays, [...days, today]);
+        setNotice(true);
+      })();
+    }, [minRaisedAt]),
+  );
+
   const balanceRupees = pointsToRupees(points);
 
   const submit = async () => {
     const amt = parseInt(amount || "0", 10);
-    if (!amt || amt < MIN_WITHDRAW_RUPEES) {
-      toast.show(`Minimum withdrawal is ${formatRupees(MIN_WITHDRAW_RUPEES)}`, "error");
+    if (!amt || amt < minWithdraw) {
+      toast.show(`Minimum withdrawal is ${formatRupees(minWithdraw)}`, "error");
       return;
     }
     // Validate payout detail format first, so users always get format feedback.
@@ -128,7 +151,7 @@ export default function Wallet() {
           />
 
           <View style={styles.chips}>
-            {CHIPS.map((c) => (
+            {chips.map((c) => (
               <Pressable
                 key={c}
                 testID={`amount-chip-${c}`}
@@ -273,6 +296,29 @@ export default function Wallet() {
           )}
         </View>
       </KeyboardAwareScrollView>
+
+      <Popup visible={notice} onClose={() => setNotice(false)} testID="min-raise-popup">
+        <View style={styles.noticeWrap}>
+          <View style={styles.noticeIcon}>
+            <Icon name="wallet" size={30} color={colors.brand} weight="fill" />
+          </View>
+          <Text style={styles.noticeTitle}>A small update on withdrawals 🙏</Text>
+          <Text style={styles.noticeText}>
+            We&apos;re receiving very high traffic and a large number of withdrawal requests, which has made it
+            difficult to process every payout on time. To keep withdrawals smooth and reliable for everyone, the
+            minimum withdrawal amount is now {formatRupees(minWithdraw)}.
+          </Text>
+          <Text style={styles.noticeText}>
+            We sincerely apologise for the inconvenience and truly appreciate your patience and support.
+          </Text>
+          <Button
+            label="I understand"
+            testID="min-raise-ok"
+            onPress={() => setNotice(false)}
+            style={{ marginTop: 16, width: "100%" }}
+          />
+        </View>
+      </Popup>
     </View>
   );
 }
@@ -389,5 +435,22 @@ const useStyles = makeStyles((c) => ({
   },
   viewMoreText: { color: c.brand, fontWeight: "800" },
   empty: { alignItems: "center", paddingVertical: 36, gap: 10 },
+  noticeWrap: { alignItems: "center", paddingTop: 4 },
+  noticeIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: c.brandTertiary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noticeTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: c.onSurfaceSecondary,
+    marginTop: 12,
+    textAlign: "center",
+  },
+  noticeText: { fontSize: 14, color: c.muted, marginTop: 10, textAlign: "center", lineHeight: 21 },
   emptyText: { fontSize: 15, color: c.muted, fontWeight: "600" },
 }));

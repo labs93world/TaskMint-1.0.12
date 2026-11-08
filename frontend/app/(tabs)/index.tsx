@@ -8,7 +8,6 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 
 import { makeStyles, useTheme } from "@/src/theme";
@@ -21,13 +20,14 @@ import { BannerCarousel } from "@/src/components/BannerCarousel";
 import { PlayEarn } from "@/src/components/home/PlayEarn";
 import { TaskDetailModal } from "@/src/components/home/TaskDetailModal";
 import {
-  listBanners,
-  listTasks,
+  visibleBanners,
+  visibleTasks,
   createSubmission,
   OfferTask,
   OfferStatus,
 } from "@/src/lib/firestore";
 import { useUser } from "@/src/context/UserContext";
+import { useCatalog } from "@/src/lib/catalog";
 import { useToast } from "@/src/components/ui/Toast";
 import { storage } from "@/src/utils/storage";
 import { KEYS } from "@/src/lib/storageKeys";
@@ -64,15 +64,17 @@ export default function Home() {
     })();
   }, [addPoints]);
 
-  const bannersQ = useQuery({ queryKey: ["banners"], queryFn: () => listBanners() });
-  const tasksQ = useQuery({ queryKey: ["tasks"], queryFn: () => listTasks() });
+  // Single catalog read per app launch (banners + tasks + config).
+  const catalogQ = useCatalog();
+  const banners = useMemo(() => (catalogQ.data ? visibleBanners(catalogQ.data) : []), [catalogQ.data]);
+  const allTasks = useMemo(() => (catalogQ.data ? visibleTasks(catalogQ.data) : []), [catalogQ.data]);
 
   // Notify when a brand-new offerwall task appears (reuses this same read).
   useEffect(() => {
-    if (tasksQ.data && tasksQ.data.length) {
-      processAndNotify({ tasks: tasksQ.data }).catch(() => {});
+    if (allTasks.length) {
+      processAndNotify({ tasks: allTasks }).catch(() => {});
     }
-  }, [tasksQ.data]);
+  }, [allTasks]);
 
   const motivation = useMemo(
     () => MOTIVATION[Math.floor(Date.now() / 86400000) % MOTIVATION.length],
@@ -80,10 +82,8 @@ export default function Home() {
   );
 
   const onRefresh = useCallback(() => {
-    bannersQ.refetch();
-    tasksQ.refetch();
     reconcile();
-  }, [bannersQ, tasksQ, reconcile]);
+  }, [reconcile]);
 
   const submissionFor = (taskId: string) =>
     submissions.find((s) => s.taskId === taskId) ?? null;
@@ -98,12 +98,12 @@ export default function Home() {
       if (s.status === "approved") return 3;
       return 4; // rejected
     };
-    return [...(tasksQ.data ?? [])].sort((a, b) => {
+    return [...allTasks].sort((a, b) => {
       const r = rank(a) - rank(b);
       if (r !== 0) return r;
       return (b.createdAt ?? 0) - (a.createdAt ?? 0); // latest first within group
     });
-  }, [tasksQ.data, submissions]);
+  }, [allTasks, submissions]);
 
   const handleSubmit = async (proof: string) => {
     if (!activeTask) return;
@@ -168,9 +168,9 @@ export default function Home() {
           <RefreshControl refreshing={false} onRefresh={onRefresh} tintColor={colors.brand} />
         }
       >
-        {!!(bannersQ.data && bannersQ.data.length) && (
+        {banners.length > 0 && (
           <View style={{ marginTop: 8 }}>
-            <BannerCarousel banners={bannersQ.data} />
+            <BannerCarousel banners={banners} />
           </View>
         )}
 
@@ -188,7 +188,7 @@ export default function Home() {
           <View style={{ marginTop: 14 }}>
             {tab === "offerwall" ? (
               tasks.length === 0 ? (
-                <EmptyTasks loading={tasksQ.isLoading} onRetry={() => tasksQ.refetch()} />
+                <EmptyTasks loading={catalogQ.isLoading} onRetry={catalogQ.isError ? () => catalogQ.refetch() : undefined} />
               ) : (
                 tasks.map((t) => {
                   const sub = submissionFor(t.id);
@@ -300,7 +300,7 @@ function StatusPill({ status }: { status: OfferStatus }) {
   );
 }
 
-function EmptyTasks({ loading, onRetry }: { loading: boolean; onRetry: () => void }) {
+function EmptyTasks({ loading, onRetry }: { loading: boolean; onRetry?: () => void }) {
   const styles = useStyles();
   const { colors } = useTheme();
   return (
@@ -309,7 +309,7 @@ function EmptyTasks({ loading, onRetry }: { loading: boolean; onRetry: () => voi
       <Text style={styles.emptyText}>
         {loading ? "Loading tasks..." : "No tasks available right now"}
       </Text>
-      {!loading && (
+      {!loading && !!onRetry && (
         <Pressable onPress={onRetry} style={styles.retryBtn}>
           <Text style={styles.retryText}>Refresh</Text>
         </Pressable>

@@ -17,7 +17,7 @@
  *  pay-as-you-go "Blaze" plan — Cloud Functions require it.)
  */
 
-const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentUpdated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
@@ -133,14 +133,19 @@ exports.onSubmissionUpdate = onDocumentUpdated("offerwall_submissions/{id}", asy
 });
 
 // ------------------------- New task broadcast -------------------------------
-exports.onNewTask = onDocumentCreated("offerwall_tasks/{id}", async (event) => {
-  const task = event.data.data();
-  if (!task || task.hidden) return;
-  await broadcast(
-    "New task available \uD83C\uDD95",
-    `${task.title} \u2014 earn ${rupees(task.reward)}. Tap to start!`,
-    "/(tabs)",
-  );
+// Tasks live inside the single meta/catalog doc; broadcast any newly added ones.
+exports.onNewTask = onDocumentWritten("meta/catalog", async (event) => {
+  const before = (event.data.before.exists && event.data.before.data().tasks) || [];
+  const after = (event.data.after.exists && event.data.after.data().tasks) || [];
+  const seen = new Set(before.map((t) => t.id));
+  const fresh = after.filter((t) => !seen.has(t.id) && !t.hidden).slice(0, 3);
+  for (const task of fresh) {
+    await broadcast(
+      "New task available \uD83C\uDD95",
+      `${task.title} \u2014 earn ${rupees(task.reward)}. Tap to start!`,
+      "/(tabs)",
+    );
+  }
 });
 
 // ------------------------- Daily reminder (7PM IST) -------------------------

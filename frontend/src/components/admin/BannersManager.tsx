@@ -1,38 +1,28 @@
 import React, { useState } from "react";
 import { Pressable, Switch, Text, TextInput, View } from "react-native";
 import { Image } from "expo-image";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { makeStyles, useTheme } from "@/src/theme";
 import { Icon } from "@/src/components/ui/Icon";
 import { Popup } from "@/src/components/ui/Popup";
 import { Button } from "@/src/components/ui/Button";
 import { useToast } from "@/src/components/ui/Toast";
-import {
-  addBanner,
-  deleteBanner,
-  listBanners,
-  updateBanner,
-  Banner,
-} from "@/src/lib/firestore";
+import { adminBanners, newId, Banner } from "@/src/lib/firestore";
+import { useAdminCatalog } from "@/src/lib/catalog";
 
 export function BannersManager() {
   const styles = useStyles();
   const { colors } = useTheme();
-  const qc = useQueryClient();
   const toast = useToast();
-  const q = useQuery({ queryKey: ["admin-banners"], queryFn: () => listBanners(true) });
+  const { catalog, save: saveField } = useAdminCatalog();
+  const all = catalog.banners;
+  const write = (next: Banner[]) => saveField("banners", next);
 
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Banner | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [redirectUrl, setRedirectUrl] = useState("");
   const [saving, setSaving] = useState(false);
-
-  const refresh = () => {
-    qc.invalidateQueries({ queryKey: ["admin-banners"] });
-    qc.invalidateQueries({ queryKey: ["banners"] });
-  };
 
   const openAdd = () => {
     setEditing(null);
@@ -54,12 +44,12 @@ export function BannersManager() {
     }
     setSaving(true);
     try {
+      const data = { imageUrl: imageUrl.trim(), redirectUrl: redirectUrl.trim() };
       if (editing) {
-        await updateBanner(editing.id, { imageUrl: imageUrl.trim(), redirectUrl: redirectUrl.trim() });
+        await write(all.map((x) => (x.id === editing.id ? { ...x, ...data } : x)));
       } else {
-        await addBanner({ imageUrl: imageUrl.trim(), redirectUrl: redirectUrl.trim(), pinned: false, hidden: false });
+        await write([...all, { id: newId(), ...data, pinned: false, hidden: false, createdAt: Date.now() }]);
       }
-      refresh();
       setModal(false);
       toast.show("Banner saved", "success");
     } catch {
@@ -70,16 +60,20 @@ export function BannersManager() {
   };
 
   const toggle = async (b: Banner, field: "pinned" | "hidden") => {
-    await updateBanner(b.id, { [field]: !b[field] });
-    refresh();
+    await write(all.map((x) => (x.id === b.id ? { ...x, [field]: !b[field] } : x))).catch(() =>
+      toast.show("Save failed", "error"),
+    );
   };
   const remove = async (b: Banner) => {
-    await deleteBanner(b.id);
-    refresh();
-    toast.show("Banner deleted", "info");
+    try {
+      await write(all.filter((x) => x.id !== b.id));
+      toast.show("Banner deleted", "info");
+    } catch {
+      toast.show("Delete failed", "error");
+    }
   };
 
-  const banners = q.data ?? [];
+  const banners = adminBanners(catalog);
 
   return (
     <View>

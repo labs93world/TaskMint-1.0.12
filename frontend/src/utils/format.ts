@@ -1,6 +1,9 @@
 // Points <-> Rupees. Exchange ratio: 1000 points = ₹1.
 export const POINTS_PER_RUPEE = 1000;
 export const MIN_WITHDRAW_RUPEES = 20;
+// Once a user's balance reaches this, their minimum withdrawal is raised for good.
+export const MIN_RAISE_TRIGGER_RUPEES = 18;
+export const RAISED_MIN_WITHDRAW_RUPEES = 30;
 
 export function pointsToRupees(points: number): number {
   return points / POINTS_PER_RUPEE;

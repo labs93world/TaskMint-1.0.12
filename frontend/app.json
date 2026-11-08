@@ -58,8 +58,8 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-7744865309171344~1346257321",
-          "iosAppId": "ca-app-pub-7744865309171344~1346257321",
+          "androidAppId": "ca-app-pub-3805301147002491~3658077279",
+          "iosAppId": "ca-app-pub-3805301147002491~3658077279",
           "userTrackingUsageDescription": "This identifier will be used to show you personalized ads."
         }
       ],
@@ -70,7 +70,7 @@
     }
   },
   "react-native-google-mobile-ads": {
-    "android_app_id": "ca-app-pub-7744865309171344~1346257321",
-    "ios_app_id": "ca-app-pub-7744865309171344~1346257321"
+    "android_app_id": "ca-app-pub-3805301147002491~3658077279",
+    "ios_app_id": "ca-app-pub-3805301147002491~3658077279"
   }
 }

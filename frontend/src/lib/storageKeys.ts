@@ -18,4 +18,6 @@ export const KEYS = {
   notifiedSubs: "tm_notified_subs", // string[] submission ids already notified (approved)
   seenTasks: "tm_seen_tasks", // string[] task ids already seen (new-task alerts)
   pushToken: "tm_push_token", // last FCM device token saved to Firestore (dedup)
+  minRaisedAt: "tm_min_raised_at", // number, when balance first reached ₹18 (min → ₹30)
+  minPopupDays: "tm_min_popup_days", // string[] dates the min-raise popup was shown
 } as const;

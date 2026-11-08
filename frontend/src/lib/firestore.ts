@@ -2,7 +2,6 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getCountFromServer,
   getDoc,
@@ -146,7 +145,17 @@ export async function countActiveToday(): Promise<number> {
   return snap.data().count;
 }
 
-// ------------------------------- Banners -------------------------------------
+// --------------------------- Meta catalog (single doc) -----------------------
+// Banners, offerwall tasks and force-update config all live in ONE document
+// (meta/catalog) so a user app launch costs exactly one Firestore read.
+export type Catalog = {
+  banners: Banner[];
+  tasks: OfferTask[];
+  config: AppConfig | null;
+};
+
+const catalogRef = () => doc(db, "meta", "catalog");
+
 function sortPinned<T extends { pinned?: boolean; createdAt: number }>(arr: T[]) {
   return [...arr].sort((a, b) => {
     if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
@@ -154,28 +163,7 @@ function sortPinned<T extends { pinned?: boolean; createdAt: number }>(arr: T[])
   });
 }
 
-export async function listBanners(includeHidden = false): Promise<Banner[]> {
-  const snap = await getDocs(collection(db, "banners"));
-  let items = snap.docs.map((d) => withId<Banner>(d));
-  if (!includeHidden) items = items.filter((b) => !b.hidden);
-  return sortPinned(items);
-}
-
-export async function addBanner(data: Omit<Banner, "id" | "createdAt">) {
-  await addDoc(collection(db, "banners"), { ...data, createdAt: Date.now() });
-}
-export async function updateBanner(id: string, data: Partial<Banner>) {
-  await updateDoc(doc(db, "banners", id), data);
-}
-export async function deleteBanner(id: string) {
-  await deleteDoc(doc(db, "banners", id));
-}
-
-// ------------------------------- Offerwall tasks -----------------------------
-export async function listTasks(includeHidden = false): Promise<OfferTask[]> {
-  const snap = await getDocs(collection(db, "offerwall_tasks"));
-  let items = snap.docs.map((d) => withId<OfferTask>(d));
-  if (!includeHidden) items = items.filter((t) => !t.hidden);
+function sortTasks(items: OfferTask[]) {
   // pinned first, then explicit admin order (desc), then newest first
   return [...items].sort((a, b) => {
     if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
@@ -185,17 +173,50 @@ export async function listTasks(includeHidden = false): Promise<OfferTask[]> {
   });
 }
 
-export async function addTask(data: Omit<OfferTask, "id" | "createdAt">) {
-  await addDoc(collection(db, "offerwall_tasks"), {
-    ...data,
-    createdAt: Date.now(),
-  });
+export function newId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
-export async function updateTask(id: string, data: Partial<OfferTask>) {
-  await updateDoc(doc(db, "offerwall_tasks", id), data);
+
+// Raw catalog (includes hidden items). If the single doc doesn't exist yet and
+// `migrate` is set (admin only), it is built once from the legacy collections.
+export async function getCatalog(migrate = false): Promise<Catalog> {
+  const snap = await getDoc(catalogRef());
+  if (snap.exists()) {
+    const d = snap.data() as Partial<Catalog>;
+    return { banners: d.banners ?? [], tasks: d.tasks ?? [], config: d.config ?? null };
+  }
+  if (!migrate) return { banners: [], tasks: [], config: null };
+  const [b, t, c] = await Promise.all([
+    getDocs(collection(db, "banners")),
+    getDocs(collection(db, "offerwall_tasks")),
+    getDoc(doc(db, "app_config", "config")),
+  ]);
+  const cat: Catalog = {
+    banners: b.docs.map((x) => withId<Banner>(x)),
+    tasks: t.docs.map((x) => withId<OfferTask>(x)),
+    config: c.exists() ? (c.data() as AppConfig) : null,
+  };
+  await setDoc(catalogRef(), cat);
+  return cat;
 }
-export async function deleteTask(id: string) {
-  await deleteDoc(doc(db, "offerwall_tasks", id));
+
+// Visible, sorted view for users.
+export function visibleBanners(c: Catalog) {
+  return sortPinned(c.banners.filter((b) => !b.hidden));
+}
+export function visibleTasks(c: Catalog) {
+  return sortTasks(c.tasks.filter((t) => !t.hidden));
+}
+export function adminBanners(c: Catalog) {
+  return sortPinned(c.banners);
+}
+export function adminTasks(c: Catalog) {
+  return sortTasks(c.tasks);
+}
+
+// Admin writes: replace one field of the catalog doc (no read needed).
+export async function saveCatalogField<K extends keyof Catalog>(key: K, value: Catalog[K]) {
+  await setDoc(catalogRef(), { [key]: value }, { merge: true });
 }
 
 // ------------------------------- Payout requests -----------------------------
@@ -256,14 +277,4 @@ export async function adminSubmissions(status: OfferStatus): Promise<OfferSubmis
 
 export async function setSubmissionStatus(id: string, status: OfferStatus, reason?: string) {
   await updateDoc(doc(db, "offerwall_submissions", id), { status, reason: reason ?? "" });
-}
-
-// ------------------------------- App config ----------------------------------
-export async function getConfig(): Promise<AppConfig | null> {
-  const snap = await getDoc(doc(db, "app_config", "config"));
-  return snap.exists() ? (snap.data() as AppConfig) : null;
-}
-
-export async function setConfig(data: AppConfig) {
-  await setDoc(doc(db, "app_config", "config"), data, { merge: true });
 }

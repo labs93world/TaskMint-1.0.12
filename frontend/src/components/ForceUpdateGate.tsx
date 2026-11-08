@@ -2,12 +2,11 @@ import React from "react";
 import { Linking, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
-import { useQuery } from "@tanstack/react-query";
 
 import { makeStyles, useTheme } from "@/src/theme";
 import { Icon } from "./ui/Icon";
 import { Button } from "./ui/Button";
-import { getConfig } from "@/src/lib/firestore";
+import { useCatalog } from "@/src/lib/catalog";
 
 function isOlder(current: string, latest: string): boolean {
   const a = current.split(".").map((n) => parseInt(n, 10) || 0);
@@ -27,12 +26,7 @@ export function ForceUpdateGate({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
   const current = Constants.expoConfig?.version ?? "1.0.0";
 
-  const { data } = useQuery({
-    queryKey: ["app-config"],
-    queryFn: () => getConfig(),
-    staleTime: 60000,
-    refetchInterval: 60000,
-  });
+  const data = useCatalog().data?.config;
 
   const mustUpdate =
     !!data?.forceUpdate && !!data?.latestVersion && isOlder(current, data.latestVersion);
