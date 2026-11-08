@@ -63,7 +63,13 @@
           "userTrackingUsageDescription": "This identifier will be used to show you personalized ads."
         }
       ],
-      "expo-background-task"
+      "expo-background-task",
+      [
+        "./plugins/withGoogleMobileAdsGradleFix.js",
+        {
+          "androidAppId": "ca-app-pub-3805301147002491~3658077279"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
